@@ -133,11 +133,15 @@ class PortraitHomeScreenshots {
         assumeTrue("run with -Pscreenshots", System.getProperty("screenshotDir") != null)
         val hid = FakeHid()
         val laptop = HostDevice("00:00:00:00:00:01", "LAPTOP (mock)")
-        val vm = MainViewModel(hid, MutableStateFlow(BluetoothState.ENABLED), { listOf(laptop) }, DiagnosticLog(), listOf("screenshot"), { 0L },
-            batteryPercent = { 80 }, phoneNameControl = FakePhoneName())
+        val vm = MainViewModel(hid, MutableStateFlow(BluetoothState.ENABLED), { listOf(laptop, HostDevice("00:00:00:00:00:02", "OFFICE-PC (mock)")) }, DiagnosticLog(), listOf("screenshot"), { 0L },
+            batteryPercent = { 80 }, phoneNameControl = FakePhoneName(),
+            laptopScanner = FakeLaptopScanner().also { it.found.value = listOf(HostDevice("00:00:00:00:00:03", "GAMING-PC (mock)")) })
         rule.setContent { App(vm, AppActions({}, {}, {}, {})) }
         rule.runOnIdle { vm.onPermissionsChanged(true); vm.onForeground(); vm.autoStart() }
         shoot("01_home_connect")
+        rule.runOnIdle { vm.navigate(Screen.LAPTOPS) }
+        shoot("03_choose_laptop")
+        rule.runOnIdle { vm.navigate(Screen.HOME) }
         rule.runOnIdle { vm.connectNow(); hid.emit(HidEvent.AppStatusChanged(true)) }
         shoot("01b_home_connecting")
         rule.runOnIdle { hid.emit(HidEvent.ConnectionChanged(laptop, HidStateReducer.STATE_CONNECTED)) }

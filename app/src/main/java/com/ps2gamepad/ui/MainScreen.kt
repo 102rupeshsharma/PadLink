@@ -53,6 +53,8 @@ class AppActions(
     val enableBluetooth: () -> Unit,
     val makeDiscoverable: () -> Unit,
     val exit: () -> Unit,
+    /** Asks for the "scan for nearby devices" permission, then runs the callback if granted. */
+    val requestScanPermission: (onGranted: () -> Unit) -> Unit = { it() },
 )
 
 @Composable
@@ -61,6 +63,7 @@ fun App(vm: MainViewModel, actions: AppActions) {
         val screen by vm.screen.collectAsStateWithLifecycle()
         when (screen) {
             Screen.HOME -> SimpleHomeScreen(vm, actions)
+            Screen.LAPTOPS -> LaptopsScreen(vm, actions)
             Screen.LOADOUTS -> LoadoutPickerScreen(vm)
             Screen.DASHBOARD -> DashboardScreen(vm, actions)
             Screen.CONNECTION -> MainScreen(vm, actions)

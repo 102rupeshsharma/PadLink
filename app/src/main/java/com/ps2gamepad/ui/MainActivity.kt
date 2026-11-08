@@ -43,6 +43,13 @@ class MainActivity : ComponentActivity() {
         vm.onPermissionsChanged(BluetoothPermissionHandler.hasAll(this))
         vm.autoStart()
     }
+    /** Runs after the scan permission dialog, if granted. */
+    private var afterScanPermission: (() -> Unit)? = null
+    private val scanPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        val ok = BluetoothPermissionHandler.hasScan(this)
+        if (ok) afterScanPermission?.invoke() else vm.log.add("Search needs the \"Nearby devices\" permission")
+        afterScanPermission = null
+    }
     private val enableLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { }
     private val discoverableLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         // resultCode = discoverable duration in seconds, or RESULT_CANCELED.
@@ -108,6 +115,10 @@ class MainActivity : ComponentActivity() {
                     enableBluetooth = { safeLaunch { enableLauncher.launch(BluetoothManagerHelper.enableIntent()) } },
                     makeDiscoverable = { safeLaunch { discoverableLauncher.launch(BluetoothManagerHelper.discoverableIntent()) } },
                     exit = { finish() },
+                    requestScanPermission = { onGranted ->
+                        if (BluetoothPermissionHandler.hasScan(this)) onGranted()
+                        else { afterScanPermission = onGranted; scanPermissionLauncher.launch(BluetoothPermissionHandler.scanPermissions()) }
+                    },
                 ),
             )
         }
@@ -173,6 +184,7 @@ class MainActivity : ComponentActivity() {
                 settingsRepository = SettingsRepository(DataStoreTextStorage(app), settingsScope),
                 phoneNameControl = com.ps2gamepad.bluetooth.AdapterPhoneName(app) { bt.adapter },
                 motionSource = com.ps2gamepad.motion.AndroidMotionSource(app),
+                laptopScanner = com.ps2gamepad.bluetooth.AndroidLaptopScanner(app) { bt.adapter },
                 batteryPercent = {
                     battery?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)?.takeIf { it in 0..100 }
                 },

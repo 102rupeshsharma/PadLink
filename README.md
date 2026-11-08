@@ -52,6 +52,11 @@ sideways (landscape) by itself; when you leave the controller it turns back.
    on the laptop and **Pair** on the phone.
 6. The app shows **Connected ✓**. Done!
 
+> **Two or more laptops?** Tap **Choose another laptop / pair a new one** under the Connect button.
+> You get a list of your paired laptops with a **Connect** button on each, **Search for laptops** to find
+> and pair a new one from the phone, and **Make this phone visible** to pair from the laptop instead.
+> While you pick or pair another laptop, the phone no longer reconnects to the old one by itself.
+
 > **Used an older version before?** On the laptop, go to **Bluetooth & devices → PadLink** (or
 > "PS2 Gamepad") **→ ⋯ → Remove device**, then do Step 2 again. Needed only once.
 
@@ -143,6 +148,8 @@ layouts and settings stay. You only need to pair again if the guide or the relea
 | **Buttons feel slow / laggy** | Update to **3.2.0** or newer (touches go straight to Bluetooth, buttons never wait behind stick movement). USB 3 ports and hubs right next to a Bluetooth dongle can disturb it: use a USB 2 port or a short extension cable for the dongle. |
 | **Settings: buttons don't react, can't scroll** | Update to **3.2.0** or newer (fixed). |
 | **Stopped working after switching apps** | Go back to PadLink: once you have tapped Connect, it reconnects by itself within a few seconds. Keep it open while playing. |
+| **It always connects to the same laptop / I can't see my other laptop** | Tap **Choose another laptop / pair a new one** on the start screen and tap **Connect** next to the laptop you want. A laptop that isn't in the list: tap **Search for laptops** (on the laptop, keep Settings → Bluetooth & devices → Add device open so it can be found), then **Pair & connect**. If pairing from the phone doesn't connect, use **Make this phone visible** and pair from the laptop instead. |
+| **Search finds nothing** | Allow **Nearby devices** when asked. On Android 9-11 also turn on **Location** (Android needs it for Bluetooth search). Keep the laptop's **Add device** window open while searching. |
 | **Connect says "Waiting for the laptop…" for a long time** | Turn Bluetooth on on the laptop. If the laptop was never paired, add **PadLink** on the laptop (Step 2). After 20 seconds the button comes back so you can try again. |
 | **Gyro: small aim does nothing** | **Settings → Game dead-zone fix**: raise it a little. Camera creeps on its own? Lower it. |
 | **Gyro: up/down is the wrong way** | **Settings → Invert up/down**. |
@@ -152,9 +159,9 @@ layouts and settings stay. You only need to pair again if the guide or the relea
 
 ### Screens
 
-| Start screen (portrait) | Connected |
-|---|---|
-| <img src="docs/screenshots/01_home_connect.png" width="260"> | <img src="docs/screenshots/02_home_connected.png" width="260"> |
+| Start screen (portrait) | Choose a laptop | Connected |
+|---|---|---|
+| <img src="docs/screenshots/01_home_connect.png" width="220"> | <img src="docs/screenshots/03_choose_laptop.png" width="220"> | <img src="docs/screenshots/02_home_connected.png" width="220"> |
 
 | Real buttons (Y B A X) | Real buttons (△ ○ ✕ □) |
 |---|---|
@@ -170,7 +177,7 @@ layouts and settings stay. You only need to pair again if the guide or the relea
 
 ---
 
-**Version 3.4.0.** 287 automated tests (284 passed, 3 skipped).
+**Version 3.5.0.** 297 automated tests (294 passed, 3 skipped).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
 - Not yet confirmed on hardware: gyro aiming, button styles, combo buttons, loadouts and the battery saver.
@@ -311,9 +318,9 @@ Source layout: `bluetooth/` (HID layer), `controller/` (input manager, stick mat
 
 ## 📥 Download
 
-### **[⬇️ Download PadLink (v3.4.0, 2.5 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink (v3.5.0, 2.6 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link on your Android phone, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `71dbe2d88f6965a8f2a4a3586d2871c9527982c16e2131fb3a6fe804f3092746`
+SHA-256: `e244c45e5c50aebb50f0ee634a37404a43c7d5bfcb7ec08fda1061ff9e813315`

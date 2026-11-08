@@ -54,8 +54,8 @@ fun simpleStatus(
         Severity.INFO, SimpleAction.NONE_WAIT, "")
     !started && hid.registration !is RegistrationState.Failed -> SimpleStatus(
         "Not connected",
-        if (knownPc != null) "Turn on Bluetooth on ${knownPc.displayName}, then tap Connect."
-        else "Turn on Bluetooth on your laptop, then tap Connect to pair.",
+        if (knownPc != null) "Turn on Bluetooth on ${knownPc.displayName}, then tap Connect. Another laptop? Tap \"Choose another laptop\"."
+        else "Tap Connect to choose your laptop or pair a new one.",
         Severity.WARN, SimpleAction.CONNECT, "Connect")
     hid.registration is RegistrationState.Failed -> SimpleStatus(
         "Setup failed", "The phone refused to start the gamepad (${(hid.registration as RegistrationState.Failed).reason}). Tap Try again.",

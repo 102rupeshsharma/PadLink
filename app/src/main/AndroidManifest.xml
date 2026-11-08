@@ -10,8 +10,20 @@
     <!-- Android 12+ (API 31+): runtime permissions.
          CONNECT   - register the HID app, connect to the host, send reports, read device names.
          ADVERTISE - required by ACTION_REQUEST_DISCOVERABLE so Windows can find the phone.
-         BLUETOOTH_SCAN is intentionally NOT requested: the phone never scans; Windows does. -->
+         SCAN      - only when the user searches for laptops (see below). -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- "Choose a laptop" → Search (3.5.0): finds nearby laptops. Never used to derive location. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <!-- Android 9-11 need these for Bluetooth discovery and pairing from the phone. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
     <uses-feature
