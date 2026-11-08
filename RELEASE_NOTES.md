@@ -1,5 +1,28 @@
 # Release notes
 
+## PadLink Bridge 1.0.0 (Windows PC app), 2026-11-08: PadLink as an Xbox controller in every PC game
+
+- **New Windows app, PadLink Bridge** (`download/PadLinkBridge.exe`, source in `pc-bridge/`). Many PC
+  games and ports (e.g. the God of War 3 PC port) only accept Xbox (XInput) controllers and ignore
+  PadLink. The Bridge reads PadLink's Bluetooth HID reports on the PC and feeds a virtual
+  **Xbox 360 controller** (ViGEmBus driver), so games see a real Xbox controller. The phone app is
+  unchanged and still works on its own for emulators.
+- Fixed button map: ✕→A, ○→B, □→X, △→Y, L1/R1→LB/RB, L2/R2→LT/RT (full), Select/Start→Back/Start,
+  L3/R3, D-pad (all 8 directions), both sticks at full range (up stays up).
+- Every PadLink report goes straight to the Xbox controller on its own thread: no queue, no polling delay.
+  When the phone disconnects, every button and stick is released and the controller is unplugged.
+- Setup window with 3 steps: **Install driver** (official ViGEmBus 1.22.0 installer), **PadLink
+  connected**, **Test** (plugs a test controller, presses A and checks that Windows' XInput sees it).
+- **Hide the original PadLink from games** with HidHide (optional, recommended), so a game never sees
+  two controllers.
+- Runs in the tray (PL icon: grey = waiting, green = active), starts with Windows (can be turned off),
+  one copy at a time, no admin rights except the driver installers.
+- Tests: 33 automated tests (report parsing, the full button/stick map, picking PadLink among other
+  controllers including the real device list from a Windows 11 laptop, a God of War play session,
+  100-report button mashing in order, 4 threads at once, junk reports). `--selftest` on the real
+  laptop: passed (found the paired PadLink Gamepad). **Not yet checked:** the driver install, the
+  Test button and a game, on a PC with ViGEmBus installed.
+
 ## 3.5.0 (versionCode 21), 2026-11-08: choose between laptops, search and pair new ones
 
 - **Fix: the phone always connected to the laptop it used last** (reported with two laptops). Both the

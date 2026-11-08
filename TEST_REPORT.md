@@ -256,6 +256,33 @@ Automated (MOCK Bluetooth): PortraitAppTest (OrientationRuleTest 3, PortraitScre
 
 Automated (MOCK Bluetooth): ChooseLaptopViewModelTest (6), ChooseLaptopUiTest (4): all passed.
 
+## 4.15 PadLink Bridge 1.0.0 (Windows PC app) ⏳
+
+Automated: `dotnet test pc-bridge/PadLinkBridge.slnx`: **33 passed, 0 failed** (no mocks of the mapping;
+the virtual controller is a recording fake, so these prove the bridge logic, not the driver).
+
+| Suite | Tests | Covers |
+|---|---|---|
+| ReportTests | 6 | PadLink report parsing: ID, length, every button bit, hat, axes, junk rejected |
+| MapperTests | 15 | Every button → Xbox, all 9 hat values → D-pad, sticks full range, Y inverted (up = up) |
+| DeviceMatcherTests | 7 | Picks PadLink, never a real Xbox/Microsoft pad or a keyboard; HidHide instance ID; the real device list from the developer laptop |
+| PlaySessionTests | 5 | God of War session, 100 mashed reports in order with none lost, plug once, 4 threads, junk never presses anything |
+
+Real laptop (Windows 11, no ViGEmBus installed), `PadLinkBridge.exe --selftest`:
+**ALL PASSED**. Found 12 HID devices, picked **PadLink Gamepad** (report length 7), XInput callable.
+Window opened (screenshot checked at the laptop's DPI), second copy refused, tray app closes.
+
+| # | Test on a real PC | Expected | Result |
+|---|---|---|---|
+| B1 | Run exe, click Install driver | ViGEmBus installs, step 1 green | ⏳ |
+| B2 | Click Test | "Test passed ✓" | ⏳ |
+| B3 | Phone: Connect + Open Controller | Step 2 green, tray icon green, live line moves | ⏳ |
+| B4 | `joy.cpl` | "Controller (XBOX 360 For Windows)" listed, all buttons/sticks react | ⏳ |
+| B5 | God of War 3 PC port (or any XInput game) | Moves, attacks, menus | ⏳ |
+| B6 | HidHide: Install, Turn on | Game sees only the Xbox controller; Bridge still works | ⏳ |
+| B7 | Phone disconnects mid-game | Character stops, nothing stays pressed | ⏳ |
+| B8 | Restart the PC | Bridge starts in the tray, works on the next Connect | ⏳ |
+
 ## 5. Final acceptance checklist
 
 | # | Criterion | Status |
