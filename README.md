@@ -1,8 +1,16 @@
 # PadLink: your phone as a Bluetooth controller
 
 **PadLink** turns an Android phone into a simple **Bluetooth game controller** for a Windows PC. Windows
-sees a normal game controller, so PCSX2 and other emulators can use it. No PC software and no driver
-needed.
+sees a normal game controller, so PCSX2 and other emulators can use it.
+
+**There are two apps. Which one do you need?**
+
+| You want to play… | Install |
+|---|---|
+| **Emulators** (PCSX2, PPSSPP, Dolphin, RetroArch…) | 📱 **PadLink** on the phone. Nothing on the PC. |
+| **PC games and ports** (Steam games, God of War 3 PC port, anything that wants an Xbox controller) | 📱 **PadLink** on the phone **and** 💻 **PadLink Bridge** on the PC |
+
+Both downloads are at the [bottom of this page](#-download).
 
 - Buttons in **3 styles**: **Real** (3D like a physical pad), **Simple** (flat) or **Outline** (rings only)
 - Face buttons labelled **Y B A X** or **△ ○ ✕ □**
@@ -17,6 +25,8 @@ needed.
 2. Pair the phone with your laptop over Bluetooth (the laptop lists it as **PadLink**).
 3. In your emulator, bind each button once.
 4. Every next time: open PadLink → tap **Connect** → **Open Controller** → play.
+5. Playing PC games or ports (not emulators)? Also install **PadLink Bridge** on the PC
+   ([guide](#-pc-games-and-ports-padlink-bridge)). It makes PadLink an Xbox controller.
 
 The full guide below walks you through each step.
 
@@ -136,6 +146,53 @@ Scroll down inside the Settings panel to see everything. Tap **Close** to go bac
 Download the new version ([Download](#-download)) and install it over the old one. Your loadouts,
 layouts and settings stay. You only need to pair again if the guide or the release notes say so.
 
+## 💻 PC games and ports: PadLink Bridge
+
+Emulators accept any controller, but many **PC games and ports only accept Xbox controllers**
+(for example the **God of War 3 PC port**, most Steam games). They ignore PadLink, even when it works
+in `joy.cpl`. **PadLink Bridge** is a small free Windows app that fixes this: it reads PadLink over
+Bluetooth and gives Windows a **virtual Xbox 360 controller**. Games then see a real Xbox controller.
+
+```
+PadLink (phone) ──Bluetooth──► PadLink Bridge (PC) ──► Xbox 360 controller ──► any PC game
+```
+
+**Set it up once (5 minutes):**
+
+1. Do Steps 1-3 above first (phone app installed, paired, visible in `joy.cpl`).
+2. On the PC download **PadLinkBridge.exe** ([Download](#-download), 52 MB). Put it somewhere it can
+   stay, for example `Documents\PadLink`.
+3. Double-click it. Windows may show **"Windows protected your PC"** (the app is new and not signed):
+   click **More info → Run anyway**.
+4. The PadLink Bridge window shows 3 steps. Follow them top to bottom:
+   - **1. Driver:** click **Install driver** and allow the Windows prompt. This installs **ViGEmBus**,
+     the free, widely used driver that creates virtual Xbox controllers. Once only.
+   - **2. PadLink:** on the phone tap **Connect** and **Open Controller**. The line turns green:
+     **PadLink connected ✓**.
+   - **3. Test:** click **Test**. "Test passed ✓" means Windows sees an Xbox controller.
+5. **Recommended: Hide the original PadLink from games.** Otherwise some games see *two* controllers
+   (PadLink and Xbox) and a button may act twice. Click **Install HidHide** (free driver, once; Windows
+   may ask for a restart), connect PadLink, then click **Turn on**.
+6. Leave **Start PadLink Bridge with Windows** ticked. It then runs quietly in the tray (the **PL**
+   icon next to the clock: grey = waiting, green = Xbox controller active).
+
+**Every next time:** just connect PadLink on the phone. The Bridge is already running and the tray
+icon turns green. Start the game. Buttons are already right (no binding needed):
+
+| PadLink | Xbox | PadLink | Xbox |
+|---|---|---|---|
+| ✕ | A | L1 / R1 | LB / RB |
+| ○ | B | L2 / R2 | LT / RT |
+| □ | X | Select / Start | Back / Start |
+| △ | Y | L3 / R3, D-pad, sticks | L3 / R3, D-pad, sticks |
+
+**Emulators with the Bridge running:** PCSX2 can then also use the Xbox controller (in PCSX2 choose the
+**XInput** controller and click **Automatic Mapping**). Your old PadLink bindings keep working unless
+you turned on "Hide the original PadLink".
+
+To stop it: right-click the **PL** tray icon → **Exit**. To remove it: untick "Start with Windows",
+exit, delete the exe.
+
 ## 🛠️ Troubleshooting
 
 | Problem | Fix |
@@ -143,7 +200,12 @@ layouts and settings stay. You only need to pair again if the guide or the relea
 | **PadLink is not in the laptop's Bluetooth list** | On the phone tap **Pair a laptop again / a new laptop** (under Connect), then search again on the laptop within 2 minutes. |
 | **Pairs, but never says Connected** | Laptop: **Bluetooth & devices → PadLink → Remove device**. Phone: Bluetooth settings → forget the laptop. Then do Step 2 again. |
 | **Connected, but the game doesn't react** | Check `joy.cpl` (Step 3). If it works there, bind the buttons in the emulator (Step 4). |
-| **Works in `joy.cpl`, not in a PC (non-emulator) game** | That game only accepts Xbox controllers. Add it to **Steam** and turn on Steam Input for generic controllers, or use **x360ce**. |
+| **Works in `joy.cpl`, not in a PC game or port** (e.g. God of War 3 PC port) | That game only accepts Xbox controllers. Install **PadLink Bridge** on the PC ([guide](#-pc-games-and-ports-padlink-bridge)). |
+| **Bridge: "Windows protected your PC"** | Click **More info → Run anyway**. The app is new and has no paid signing certificate. |
+| **Bridge: step 2 stays "Waiting for PadLink"** | On the phone: **Connect**, then **Open Controller**. Check that PadLink shows in `joy.cpl`. If HidHide is on and you just reinstalled the Bridge, click **Turn off** and **Turn on** again. |
+| **Bridge: Test failed** | Restart the PC once after installing the driver, then click **Test** again. |
+| **Bridge: game reacts twice to one press / sees two controllers** | Turn on **Hide the original PadLink from games** in the Bridge window. |
+| **Bridge: game still sees nothing** | Start PadLink Bridge and connect PadLink **before** starting the game. Some games only look for controllers at start. |
 | **Character keeps moving after I let go of the stick** | Update to **3.2.0** or newer (fixed: the app now sends stick movement at a rate the Bluetooth link can carry, and "stop" always goes first). If it still happens, move the phone closer to the laptop and turn off other Bluetooth devices you aren't using. |
 | **Buttons feel slow / laggy** | Update to **3.2.0** or newer (touches go straight to Bluetooth, buttons never wait behind stick movement). USB 3 ports and hubs right next to a Bluetooth dongle can disturb it: use a USB 2 port or a short extension cable for the dongle. |
 | **Settings: buttons don't react, can't scroll** | Update to **3.2.0** or newer (fixed). |
@@ -305,22 +367,32 @@ Source layout: `bluetooth/` (HID layer), `controller/` (input manager, stick mat
 
 ## Known limitations
 
-- **Known issues in 3.1.0 (being fixed next):** (1) inside the controller's **Settings** panel, taps
-  on some options and scrolling may not work on a real phone; (2) after letting go of a joystick,
-  the character can keep moving for 1-2 seconds.
-
 - **Keep the app in the foreground.** Android unregisters HID apps that go to the background;
   the app re-registers when you return. The controller screen keeps the display on.
 - L2/R2 are digital (no pressure). Sticks are 8-bit with a circular range (diagonal ≈ ±90 per axis).
 - No vibration (the HID report has no output/rumble report).
-- Windows sees a generic (DirectInput) controller, not an Xbox (XInput) one.
+- On its own, Windows sees a generic (DirectInput) controller, not an Xbox (XInput) one. With
+  **PadLink Bridge** running, games see an Xbox 360 controller. No vibration in either case.
 - Only one app on the phone can be a HID device at a time.
 
 ## 📥 Download
 
-### **[⬇️ Download PadLink (v3.5.0, 2.6 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+There are **two apps**. Download the phone app on your **phone** and the PC app on your **PC**.
 
-Tap the link on your Android phone, open the downloaded file and tap **Install**. It installs over an
+### 📱 1. Phone app: needed by everyone
+
+### **[⬇️ Download PadLink for Android (v3.5.0, 2.6 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+
+Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
 SHA-256: `e244c45e5c50aebb50f0ee634a37404a43c7d5bfcb7ec08fda1061ff9e813315`
+
+### 💻 2. PC app: only for PC games and ports
+
+### **[⬇️ Download PadLink Bridge for Windows (v1.0.0, 52 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLinkBridge.exe)**
+
+Click the link **on your Windows 10/11 PC** (64-bit). Not needed for PCSX2 or other emulators. Setup:
+[PC games and ports: PadLink Bridge](#-pc-games-and-ports-padlink-bridge).
+
+SHA-256: `105a406c462a0704aeb2b2b4a5a081ae7142db07d406aec6b534f016ab9b2ffe`
