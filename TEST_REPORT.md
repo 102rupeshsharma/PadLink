@@ -244,6 +244,18 @@ tests (2): all passed. HumanPlayTest fails on the 3.1 Settings code, as reported
 
 Automated (MOCK Bluetooth): PortraitAppTest (OrientationRuleTest 3, PortraitScreensUiTest 6): all passed.
 
+## 4.14 Two laptops (3.5.0) ⏳
+
+| # | Test | Expected | Result |
+|---|---|---|---|
+| T1 | Laptop A paired and used; open "Choose a laptop" | A listed as Connected / Used last | ⏳ |
+| T2 | Laptop B already paired: tap Connect next to B | A disconnects, B connects, start screen shows Connected to B | ⏳ |
+| T3 | Laptop B never paired: B in Add device; phone Search → Pair & connect | Code shown on both, B connects | ⏳ |
+| T4 | Same with "Make this phone visible", pair from B | B connects; the phone does not reconnect A meanwhile | ⏳ |
+| T5 | Next day: Connect | Connects to the laptop used last | ⏳ |
+
+Automated (MOCK Bluetooth): ChooseLaptopViewModelTest (6), ChooseLaptopUiTest (4): all passed.
+
 ## 5. Final acceptance checklist
 
 | # | Criterion | Status |

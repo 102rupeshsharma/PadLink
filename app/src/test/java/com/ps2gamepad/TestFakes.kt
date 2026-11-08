@@ -23,12 +23,15 @@ class FakeHid : HidController {
     val sent = mutableListOf<ByteArray>()
     fun emit(e: HidEvent) { s.value = HidStateReducer.reduce(s.value, e) }
     var lastAutoConnect = true
+    val autoConnectFlags = mutableListOf<Boolean>()
     override fun register(autoConnectPlugged: Boolean) {
+        autoConnectFlags += autoConnectPlugged
         registerCalls++; lastAutoConnect = autoConnectPlugged; emit(HidEvent.RegisterRequested)
     }
     override fun unregister() { unregisterCalls++; emit(HidEvent.Unregistered) }
     override fun connect(address: String) { connects += address }
-    override fun disconnect() {}
+    var disconnects = 0
+    override fun disconnect() { disconnects++ }
     override fun sendReport(report: ByteArray, eventUptimeMs: Long): Boolean {
         if (!s.value.isConnected) return false
         sent += report; return true
@@ -47,4 +50,19 @@ class FakeMotionSource(override val status: com.ps2gamepad.motion.MotionStatus =
         listener = onSample; starts++; return true
     }
     override fun stop() { listener = null; stops++ }
+}
+
+
+/** MOCK laptop search/pairing: tests decide what is "found" and when pairing finishes. */
+class FakeLaptopScanner : com.ps2gamepad.bluetooth.LaptopScanner {
+    override val found = kotlinx.coroutines.flow.MutableStateFlow<List<com.ps2gamepad.model.HostDevice>>(emptyList())
+    override val scanning = kotlinx.coroutines.flow.MutableStateFlow(false)
+    var starts = 0
+    val pairRequests = mutableListOf<String>()
+    private val waiting = HashMap<String, (Boolean) -> Unit>()
+    override fun start(): Boolean { starts++; scanning.value = true; return true }
+    override fun stop() { scanning.value = false }
+    override fun pair(address: String, onResult: (Boolean) -> Unit): Boolean { pairRequests += address; waiting[address] = onResult; return true }
+    /** The user confirmed (or refused) the pairing code. */
+    fun finishPairing(address: String, ok: Boolean) { waiting.remove(address)?.invoke(ok) }
 }

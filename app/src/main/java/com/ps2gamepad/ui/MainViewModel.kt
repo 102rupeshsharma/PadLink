@@ -37,7 +37,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-enum class Screen { HOME, LOADOUTS, DASHBOARD, CONNECTION, CONTROLLER, DIAGNOSTICS, CUSTOMIZE, PROFILES, CALIBRATION }
+enum class Screen { HOME, LAPTOPS, LOADOUTS, DASHBOARD, CONNECTION, CONTROLLER, DIAGNOSTICS, CUSTOMIZE, PROFILES, CALIBRATION }
 
 /** A controller session, for measured (not estimated) battery and duration figures. */
 data class Session(val startUptimeMs: Long, val startBattery: Int?)
@@ -63,6 +63,8 @@ class MainViewModel(
     private val autoConnectDelayMs: Long = 1_500,
     /** Gyroscope + accelerometer (null in tests that do not need them). */
     private val motionSource: com.ps2gamepad.motion.MotionSource? = null,
+    /** Searches for and pairs laptops (null in tests that do not need it). */
+    private val laptopScanner: com.ps2gamepad.bluetooth.LaptopScanner? = null,
 ) : ViewModel() {
 
     private val uptime = uptimeMs
@@ -220,6 +222,102 @@ class MainViewModel(
         return pc == null
     }
 
+    // ------------------------------------------------------------------ choosing a laptop (3.5.0)
+
+    /**
+     * The laptop the user picked in "Choose a laptop". While it is set, connections to any OTHER
+     * laptop (e.g. Android's automatic reconnect to the last one) are dropped and the chosen one is
+     * connected instead. Cleared once connected to it.
+     */
+    @Volatile private var chosenHost: HostDevice? = null
+    /** "Make this phone visible": wait for a (new) laptop to connect; never auto-connect to the old one. */
+    @Volatile private var waitingForNewLaptop = false
+
+    private val _pairing = MutableStateFlow<String?>(null)
+    /** Address being paired from the phone ("Pair & connect"), null when none. */
+    val pairing: StateFlow<String?> = _pairing.asStateFlow()
+
+    val searchResults: StateFlow<List<HostDevice>> = laptopScanner?.found ?: MutableStateFlow(emptyList())
+    val searching: StateFlow<Boolean> = laptopScanner?.scanning ?: MutableStateFlow(false)
+    val canSearch: Boolean get() = laptopScanner != null
+
+    /** Start the gamepad (if needed) without reconnecting to the old laptop by itself. */
+    private fun startGamepadForChoice() {
+        applyPhoneName()
+        userUnregistered = false
+        userDisconnected = false
+        wantRegistered = true
+        autoRegisterAttempts = 0
+        _connectRequested.value = true
+        connectTimeoutJob?.cancel()
+        connectTimeoutJob = viewModelScope.launch {
+            delay(CONNECT_TIMEOUT_MS)
+            if (!hidState.value.isConnected) { _connectRequested.value = false; log.add("Connect: no answer from the laptop") }
+        }
+        if (hidState.value.registration == RegistrationState.NotRegistered || hidState.value.registration is RegistrationState.Failed) {
+            log.add("Starting the gamepad")
+            registerInternal()
+        }
+    }
+
+    /** "Connect" on one laptop of the list: switches to it (disconnecting another laptop first). */
+    fun chooseLaptop(host: HostDevice) {
+        if (permission.value != PermissionState.GRANTED || bluetoothState.value != BluetoothState.ENABLED) return
+        waitingForNewLaptop = false
+        chosenHost = host
+        lastHost = host
+        reconnectJob?.cancel()
+        startGamepadForChoice()
+        val st = hidState.value
+        when {
+            st.connectedHost?.address == host.address -> { chosenHost = null; _connectRequested.value = false }
+            st.isConnected -> { log.add("Switching laptop: ${st.connectedHost?.displayName} -> ${host.displayName}"); hid.disconnect() }
+            st.registration == RegistrationState.Registered -> { log.add("Connecting to ${host.displayName}"); hid.connect(host.address) }
+            else -> Unit // connects in onHidState once registered
+        }
+    }
+
+    /** "Search for laptops" (scan permission must already be granted). */
+    fun startSearch(): Boolean {
+        val ok = laptopScanner?.start() ?: false
+        log.add(if (ok) "Searching for laptops..." else "Search could not start (Bluetooth off or permission missing)")
+        return ok
+    }
+
+    fun stopSearch() = laptopScanner?.stop()
+
+    /** "Pair & connect" on a laptop found by the search: pair from the phone, then connect to it. */
+    fun pairAndConnect(host: HostDevice) {
+        val s = laptopScanner ?: return
+        _pairing.value = host.address
+        log.add("Pairing with ${host.displayName}...")
+        val started = s.pair(host.address) { ok ->
+            _pairing.value = null
+            if (ok) {
+                log.add("Paired with ${host.displayName}")
+                refreshBondedHosts()
+                chooseLaptop(host)
+            } else {
+                log.add("Pairing with ${host.displayName} failed or was cancelled")
+            }
+        }
+        if (!started) { _pairing.value = null; log.add("Could not start pairing with ${host.displayName}") }
+    }
+
+    /**
+     * "Make this phone visible" (pair from the laptop): start the gamepad but do NOT reconnect to the
+     * old laptop, so the new laptop can pair and connect. Whoever connects first is then used.
+     */
+    fun prepareForNewLaptop() {
+        if (permission.value != PermissionState.GRANTED || bluetoothState.value != BluetoothState.ENABLED) return
+        chosenHost = null
+        waitingForNewLaptop = true
+        autoConnectJob?.cancel()
+        reconnectJob?.cancel()
+        startGamepadForChoice()
+        if (hidState.value.isConnected) { log.add("Disconnecting so a new laptop can connect"); hid.disconnect() }
+    }
+
     fun applyPhoneName() {
         val c = phoneNameControl ?: return
         val before = c.current()
@@ -246,11 +344,12 @@ class MainViewModel(
     /** After registering, connect to the known PC automatically unless the user disconnected. */
     private fun scheduleAutoConnect() {
         autoConnectJob?.cancel()
-        if (userDisconnected) return
+        if (userDisconnected || waitingForNewLaptop) return
+        chosenHost?.let { h -> log.add("Connecting to ${h.displayName}"); hid.connect(h.address); return }
         autoConnectJob = viewModelScope.launch {
             delay(autoConnectDelayMs) // give the stack's own reconnect a chance first
             val st = hidState.value
-            if (st.isConnected || st.connection is ConnectionState.Connecting || userDisconnected) return@launch
+            if (st.isConnected || st.connection is ConnectionState.Connecting || userDisconnected || waitingForNewLaptop) return@launch
             if (st.registration != RegistrationState.Registered) return@launch
             val pc = knownPc ?: return@launch
             log.add("Auto connect to ${pc.displayName}")
@@ -345,7 +444,7 @@ class MainViewModel(
             bluetoothState.value != BluetoothState.ENABLED -> log.add("Cannot register: ${bluetoothState.value.label}")
             permission.value != PermissionState.GRANTED -> log.add("Cannot register: Bluetooth permission required")
             !settings.loaded.value -> { registerWhenLoaded = true; log.add("Waiting for saved settings before registering...") }
-            else -> { log.add("Registering HID gamepad..."); hid.register(autoConnectPlugged = !userDisconnected) }
+            else -> { log.add("Registering HID gamepad..."); hid.register(autoConnectPlugged = !userDisconnected && chosenHost == null && !waitingForNewLaptop) }
         }
     }
 
@@ -560,7 +659,22 @@ class MainViewModel(
         }
 
         val wasConnected = prev.connection is ConnectionState.Connected
+        val chosen = chosenHost
+        if (s.isConnected && chosen != null && s.connectedHost?.address != chosen.address) {
+            // connected to a different laptop (e.g. Android reconnected the last one): switch to the chosen one
+            log.add("Connected to ${s.connectedHost?.displayName}, but ${chosen.displayName} was chosen: switching")
+            hid.disconnect()
+            previous = s
+            return
+        }
+        if (!s.isConnected && wasConnectedTo(prev) && chosen != null && s.registration == RegistrationState.Registered &&
+            s.connection !is ConnectionState.Connecting) {
+            log.add("Connecting to ${chosen.displayName}")
+            hid.connect(chosen.address)
+        }
         if (s.isConnected && !wasConnected) {
+            chosenHost = null
+            waitingForNewLaptop = false
             _connectRequested.value = false
             connectTimeoutJob?.cancel()
             autoConnectJob?.cancel() // connected: a pending auto-connect must not fire later
@@ -580,9 +694,11 @@ class MainViewModel(
             input.releaseAll()
             input.onHostLost()
             log.add("WARNING: host connection lost - inputs reset")
-            scheduleReconnect()
+            if (chosenHost == null && !waitingForNewLaptop) scheduleReconnect()
         }
     }
+
+    private fun wasConnectedTo(prev: HidState) = prev.connection is ConnectionState.Connected
 
     private fun scheduleReconnect() {
         val host = lastHost ?: return

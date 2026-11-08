@@ -1,5 +1,28 @@
 # Release notes
 
+## 3.5.0 (versionCode 21), 2026-11-08: choose between laptops, search and pair new ones
+
+- **Fix: the phone always connected to the laptop it used last** (reported with two laptops). Both the
+  app and Android's Bluetooth stack reconnected the last laptop by themselves, also while the user
+  was pairing a second one, and the phone had no list to pick from.
+- **New "Choose a laptop" screen** (start screen → "Choose another laptop / pair a new one", or
+  Connect when no laptop is known or several are paired):
+  - every paired laptop with its own **Connect** button ("Connected" / "Used last" shown);
+  - **Search for laptops**: finds laptops near the phone (classic Bluetooth discovery), tap
+    **Pair & connect** to pair from the phone and connect to it;
+  - **Make this phone visible**: pair from the laptop's Bluetooth settings instead.
+- While a laptop is being chosen or a new one is being paired, the app never reconnects the old one:
+  Android's own "reconnect the last host" is not requested, a connection to a different laptop is
+  dropped and the chosen one connected, and automatic reconnects wait. A successful connection from
+  this screen returns to the start screen (Connected ✓, Open Controller). The laptop chosen is
+  remembered for the next Connect.
+- Searching asks for the **Nearby devices** permission (scan, marked "never for location") only when
+  you tap Search; Android 9-11 need location permission for Bluetooth search instead.
+- Tests: ChooseLaptopTest (6 view-model scenarios with two laptops, including Android reconnecting
+  the old one, pairing from the phone and from the laptop; 4 UI tests on a portrait phone).
+  297 automated tests (294 passed, 3 skipped). Pairing from the phone and Windows accepting the connection are not yet checked on real
+  laptops.
+
 ## 3.4.0 (versionCode 20), 2026-11-08: portrait app, landscape controller; payment section removed
 
 - **The whole app is portrait now; only the controller is landscape** (playing and editing its layout).

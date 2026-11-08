@@ -124,17 +124,18 @@ fun SimpleHomeScreen(vm: MainViewModel, actions: AppActions) {
                                 SimpleAction.RETRY_SETUP -> vm.register()
                                 SimpleAction.MAKE_VISIBLE -> { vm.applyPhoneName(); actions.makeDiscoverable() }
                                 SimpleAction.CONNECT_PC -> vm.connectKnownPc()
-                                SimpleAction.CONNECT -> if (vm.connectNow()) actions.makeDiscoverable()
+                                // no laptop known (none yet, or several paired): let the user pick one
+                                SimpleAction.CONNECT -> if (vm.knownPc == null) vm.navigate(Screen.LAPTOPS) else vm.connectNow()
                                 SimpleAction.OPEN_CONTROLLER -> vm.openController()
                                 SimpleAction.NONE_WAIT -> Unit
                             }
                         }
                     }
-                    if (st.action == SimpleAction.CONNECT && vm.knownPc != null) {
+                    if (st.action != SimpleAction.ALLOW_PERMISSION && st.action != SimpleAction.TURN_ON_BLUETOOTH && st.action != SimpleAction.NONE_WAIT || hid.isConnected) {
                         Text(
-                            "Pair a laptop again / a new laptop",
+                            "Choose another laptop / pair a new one",
                             color = Color(0xFF9DB0FF), fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.connectNow(); actions.makeDiscoverable() }
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.navigate(Screen.LAPTOPS) }
                                 .padding(vertical = 4.dp, horizontal = 2.dp).testTag("homePairNew"),
                         )
                     }

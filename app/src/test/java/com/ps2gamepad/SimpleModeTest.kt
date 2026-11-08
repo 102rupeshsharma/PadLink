@@ -241,10 +241,13 @@ class SimpleHomeUiTest {
         rule.onNodeWithText("Connect").assertIsDisplayed()
         rule.onNodeWithText("\"PadLink\"").assertIsDisplayed()
         rule.onNodeWithTag("homeAction").performClick()
-        rule.runOnIdle { assertEquals(1, hid.registerCalls); assertEquals("no laptop known yet: pairing", 1, discoverableRequests) }
-        rule.onNodeWithText("Waiting for the laptop…").assertIsDisplayed()
+        rule.runOnIdle { assertEquals("no laptop known yet: Connect opens the laptop list", Screen.LAPTOPS, vm.screen.value) }
+        rule.onNodeWithTag("laptopVisible").performScrollTo().performClick() // first time: pair from the laptop
+        rule.runOnIdle { assertEquals(1, hid.registerCalls); assertEquals(1, discoverableRequests) }
+        rule.onNodeWithText("Connecting…").assertExists() // status line at the top (scrolled away after tapping the button)
         rule.runOnIdle { hid.emit(HidEvent.AppStatusChanged(true)) }
         rule.runOnIdle { hid.emit(HidEvent.ConnectionChanged(laptop, HidStateReducer.STATE_CONNECTED)) }
+        rule.runOnIdle { assertEquals("connected: back to the start screen by itself", Screen.HOME, vm.screen.value) }
         rule.onNodeWithText("Connected to RUPESH ✓").assertIsDisplayed()
         rule.onNodeWithText("Open Controller").performClick()
         rule.runOnIdle { assertEquals("Open Controller asks for the loadout", Screen.LOADOUTS, vm.screen.value) }
