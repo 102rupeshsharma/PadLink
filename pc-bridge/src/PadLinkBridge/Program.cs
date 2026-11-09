@@ -14,6 +14,12 @@ internal static class Program
             return 0;
         }
         ApplicationConfiguration.Initialize();
+        // last safety net: any unexpected error shows a plain message instead of the .NET crash dialog
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (_, e) =>
+            MessageBox.Show("Something went wrong:\n\n" + e.Exception.Message + "\n\nPadLink Bridge keeps running. Please try again.",
+                "PadLink Bridge", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        TaskScheduler.UnobservedTaskException += (_, e) => e.SetObserved();
         Application.Run(new App(startInTray: args.Contains("--tray")));
         return 0;
     }

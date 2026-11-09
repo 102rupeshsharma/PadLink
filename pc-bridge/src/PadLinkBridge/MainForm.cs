@@ -91,7 +91,13 @@ public sealed class MainForm : Form
         b.Text = text; b.Location = at; b.Size = new Size(126, 34);
         b.Font = new Font("Segoe UI", 9.5f);
         b.FlatStyle = FlatStyle.Flat; b.BackColor = Accent; b.ForeColor = Color.White; b.FlatAppearance.BorderSize = 0;
-        b.Click += async (_, _) => { b.Enabled = false; try { await action(); } finally { b.Enabled = true; } };
+        b.Click += async (_, _) =>
+        {
+            b.Enabled = false;
+            try { await action(); }
+            catch (Exception e) { MessageBox.Show(b.FindForm(), "Something went wrong:\n\n" + e.Message + "\n\nPlease try again.", "PadLink Bridge", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            finally { b.Enabled = true; }
+        };
     }
 
     private void Refresh2()
@@ -135,17 +141,40 @@ public sealed class MainForm : Form
 
     private async Task InstallVigem()
     {
-        var progress = new Progress<string>(m => _step1.Text = m);
-        var ok = await Drivers.DownloadAndRun(Drivers.ViGEmUrl, progress);
-        _app.TryCreatePad();
-        if (!ok && _app.Pad == null)
-            MessageBox.Show(this, "The driver was not installed. You can also download it yourself:\n" + Drivers.ViGEmUrl, "PadLink Bridge");
+        _timer.Stop(); // keep the progress text visible
+        try
+        {
+            var r = await Drivers.DownloadAndRun(DriverInstaller.ViGEmBus, new Progress<string>(m => { _step1.Text = m; _step1.ForeColor = Warn; }));
+            _app.TryCreatePad();
+            if (_app.Pad != null) return;
+            if (r.Ok)
+                MessageBox.Show(this, "The driver is installed. Restart the PC once, then open PadLink Bridge again.", "PadLink Bridge");
+            else
+                OfferManual(DriverInstaller.ViGEmBus, r.Message);
+        }
+        finally { _timer.Start(); Refresh2(); }
     }
 
     private async Task InstallHidHide()
     {
-        var ok = await Drivers.DownloadAndRun(Drivers.HidHideUrl, new Progress<string>(m => _hideInfo.Text = m));
-        if (ok) MessageBox.Show(this, "HidHide is installed. Windows may ask you to restart the PC once; then click Turn on here.", "PadLink Bridge");
+        _timer.Stop();
+        try
+        {
+            var r = await Drivers.DownloadAndRun(DriverInstaller.HidHide, new Progress<string>(m => _hideInfo.Text = m));
+            if (r.Ok) MessageBox.Show(this, "HidHide is installed. Restart the PC once, then click Turn on here.", "PadLink Bridge");
+            else OfferManual(DriverInstaller.HidHide, r.Message);
+        }
+        finally { _timer.Start(); Refresh2(); }
+    }
+
+    /// <summary>Plain-words failure with a way out: open the official download page.</summary>
+    private void OfferManual(DriverInstaller d, string why)
+    {
+        var answer = MessageBox.Show(this,
+            $"{why}\n\nThis is usually a short internet or GitHub problem: try again in a minute.\n\n" +
+            $"Or click Yes to open the official {d.Name} download page, download \"{d.FileName}\" and run it yourself.",
+            "PadLink Bridge", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+        if (answer == DialogResult.Yes) Drivers.OpenPage(d.ReleasePage);
     }
 
     private async Task ToggleHide()

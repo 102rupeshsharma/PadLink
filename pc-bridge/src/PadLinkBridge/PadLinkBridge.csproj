@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>PadLinkBridge</AssemblyName>
     <RootNamespace>PadLinkBridge</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Product>PadLink Bridge</Product>
     <Description>Turns the PadLink phone controller into an Xbox controller on Windows.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>

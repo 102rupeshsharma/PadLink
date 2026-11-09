@@ -256,7 +256,7 @@ Automated (MOCK Bluetooth): PortraitAppTest (OrientationRuleTest 3, PortraitScre
 
 Automated (MOCK Bluetooth): ChooseLaptopViewModelTest (6), ChooseLaptopUiTest (4): all passed.
 
-## 4.15 PadLink Bridge 1.0.0 (Windows PC app) ⏳
+## 4.15 PadLink Bridge 1.0.0 / 1.0.1 (Windows PC app) ⏳
 
 Automated: `dotnet test pc-bridge/PadLinkBridge.slnx`: **33 passed, 0 failed** (no mocks of the mapping;
 the virtual controller is a recording fake, so these prove the bridge logic, not the driver).
@@ -268,13 +268,18 @@ the virtual controller is a recording fake, so these prove the bridge logic, not
 | DeviceMatcherTests | 7 | Picks PadLink, never a real Xbox/Microsoft pad or a keyboard; HidHide instance ID; the real device list from the developer laptop |
 | PlaySessionTests | 5 | God of War session, 100 mashed reports in order with none lost, plug once, 4 threads, junk never presses anything |
 
+1.0.1: + InstallerDownloaderTests (11): 504 retried, other route used, everything down gives a plain
+failure, connection reset retried, error page and cut-off/altered files rejected, good earlier file reused.
+**44 passed, 0 failed.** `--selftest` 1.0.1 also downloaded the real ViGEmBus installer through the new
+route on the first try, size and SHA-256 matched: **ALL PASSED**.
+
 Real laptop (Windows 11, no ViGEmBus installed), `PadLinkBridge.exe --selftest`:
 **ALL PASSED**. Found 12 HID devices, picked **PadLink Gamepad** (report length 7), XInput callable.
 Window opened (screenshot checked at the laptop's DPI), second copy refused, tray app closes.
 
 | # | Test on a real PC | Expected | Result |
 |---|---|---|---|
-| B1 | Run exe, click Install driver | ViGEmBus installs, step 1 green | ⏳ |
+| B1 | Run exe, click Install driver | ViGEmBus installs, step 1 green | ❌ in 1.0.0 (504 crash, reported by the user), fixed in 1.0.1, ⏳ re-test |
 | B2 | Click Test | "Test passed ✓" | ⏳ |
 | B3 | Phone: Connect + Open Controller | Step 2 green, tray icon green, live line moves | ⏳ |
 | B4 | `joy.cpl` | "Controller (XBOX 360 For Windows)" listed, all buttons/sticks react | ⏳ |
