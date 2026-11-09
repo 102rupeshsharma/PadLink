@@ -256,7 +256,7 @@ Automated (MOCK Bluetooth): PortraitAppTest (OrientationRuleTest 3, PortraitScre
 
 Automated (MOCK Bluetooth): ChooseLaptopViewModelTest (6), ChooseLaptopUiTest (4): all passed.
 
-## 4.15 PadLink Bridge 1.0.0 / 1.0.1 (Windows PC app) ⏳
+## 4.15 PadLink Bridge 1.0.0 / 1.0.1 / 1.1.0 (Windows PC app) ⏳
 
 Automated: `dotnet test pc-bridge/PadLinkBridge.slnx`: **33 passed, 0 failed** (no mocks of the mapping;
 the virtual controller is a recording fake, so these prove the bridge logic, not the driver).
@@ -267,6 +267,8 @@ the virtual controller is a recording fake, so these prove the bridge logic, not
 | MapperTests | 15 | Every button → Xbox, all 9 hat values → D-pad, sticks full range, Y inverted (up = up) |
 | DeviceMatcherTests | 7 | Picks PadLink, never a real Xbox/Microsoft pad or a keyboard; HidHide instance ID; the real device list from the developer laptop |
 | PlaySessionTests | 5 | God of War session, 100 mashed reports in order with none lost, plug once, 4 threads, junk never presses anything |
+
+1.1.0: + XboxModeTests (10): open/play/close, stop/start, phone drop, no driver, stop while mashing. **54 passed.**
 
 1.0.1: + InstallerDownloaderTests (11): 504 retried, other route used, everything down gives a plain
 failure, connection reset retried, error page and cut-off/altered files rejected, good earlier file reused.
@@ -279,14 +281,16 @@ Window opened (screenshot checked at the laptop's DPI), second copy refused, tra
 
 | # | Test on a real PC | Expected | Result |
 |---|---|---|---|
-| B1 | Run exe, click Install driver | ViGEmBus installs, step 1 green | ❌ in 1.0.0 (504 crash, reported by the user), fixed in 1.0.1, ⏳ re-test |
-| B2 | Click Test | "Test passed ✓" | ⏳ |
+| B1 | Run exe, click Install driver | ViGEmBus installs | ❌ in 1.0.0 (504 crash), fixed in 1.0.1; ✅ driver installed by the user (found installed 2026-11-09) |
+| B2 | Test (virtual Xbox controller seen by XInput with A pressed) | passed | ✅ `--selftest` 1.1.0 on the laptop with the real driver |
 | B3 | Phone: Connect + Open Controller | Step 2 green, tray icon green, live line moves | ⏳ |
 | B4 | `joy.cpl` | "Controller (XBOX 360 For Windows)" listed, all buttons/sticks react | ⏳ |
 | B5 | God of War 3 PC port (or any XInput game) | Moves, attacks, menus | ⏳ |
-| B6 | HidHide: Install, Turn on | Game sees only the Xbox controller; Bridge still works | ⏳ |
+| B6 | HidHide | removed in 1.1.0 (hiding outlived the app and would break normal mode) | n/a |
 | B7 | Phone disconnects mid-game | Character stops, nothing stays pressed | ⏳ |
-| B8 | Restart the PC | Bridge starts in the tray, works on the next Connect | ⏳ |
+| B8 | Restart the PC | Bridge does NOT start by itself (1.1.0) | ⏳ |
+| B9 | 1.1.0 on/off with the real driver and the phone connected (XInput count) | 0 before, 1 when opened, 0 after Stop, 1 after Start, 0 after closing | ✅ 0 → 1 → 0 → 1 → 0, process ended (automated UI clicks on the laptop) |
+| B10 | 1.1.0 window | status, Stop/Start, how-to readable at the laptop's scaling | ✅ checked on screenshots (ON and OFF) |
 
 ## 5. Final acceptance checklist
 

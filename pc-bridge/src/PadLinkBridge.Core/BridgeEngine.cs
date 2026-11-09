@@ -34,10 +34,20 @@ public sealed class BridgeEngine
     public long ReportsForwarded { get; private set; }
     public event Action? Changed;
 
+    private bool _closed;
+
+    /// <summary>Xbox mode switched off: release and unplug, and never plug in again (late scans are ignored).</summary>
+    public void Close()
+    {
+        lock (_lock) _closed = true;
+        OnPadLinkLost();
+    }
+
     public void OnPadLinkFound(string? name)
     {
         lock (_lock)
         {
+            if (_closed) return;
             if (Status == BridgeStatus.Active) { DeviceName = name; return; }
             _pad.Connect();
             _last = XboxState.Neutral;

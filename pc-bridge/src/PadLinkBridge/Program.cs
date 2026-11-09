@@ -10,7 +10,7 @@ internal static class Program
         using var single = new Mutex(true, @"Local\PadLinkBridge.SingleInstance", out var first);
         if (!first)
         {
-            MessageBox.Show("PadLink Bridge is already running. Look for the PL icon in the tray (bottom right, next to the clock).", "PadLink Bridge");
+            MessageBox.Show("PadLink Bridge is already open. Look for its window in the taskbar.", "PadLink Bridge");
             return 0;
         }
         ApplicationConfiguration.Initialize();
@@ -20,7 +20,7 @@ internal static class Program
             MessageBox.Show("Something went wrong:\n\n" + e.Exception.Message + "\n\nPadLink Bridge keeps running. Please try again.",
                 "PadLink Bridge", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         TaskScheduler.UnobservedTaskException += (_, e) => e.SetObserved();
-        Application.Run(new App(startInTray: args.Contains("--tray")));
+        Application.Run(new App());
         return 0;
     }
 }

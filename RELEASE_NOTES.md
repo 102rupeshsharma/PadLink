@@ -1,5 +1,26 @@
 # Release notes
 
+## PadLink Bridge 1.1.0 (Windows PC app), 2026-11-09: a simple on/off app
+
+- **PadLink Bridge now works like a switch** (requested by the user): open it → Xbox mode (games see an
+  Xbox controller once the phone connects); close it → Xbox mode stops and PadLink is a normal
+  controller again (PCSX2, emulators). A big **XBOX MODE ON / WAITING FOR PADLINK / OFF** status and
+  one **Start / Stop Xbox mode** button.
+- **No tray, no start with Windows**: closing the window ends the app completely. The start-with-Windows
+  entry created by 1.0.0/1.0.1 is removed on the first start.
+- **One driver only (ViGEmBus).** The "Hide the original PadLink" option (HidHide) was removed: a hidden
+  PadLink stays hidden after the Bridge is closed, which would break the normal controller. If an older
+  version hid PadLink, the window shows **Show PadLink** to undo it.
+- Stopping always releases every button and stick first, then unplugs the Xbox controller, and nothing
+  can plug it back in afterwards (late scans and reports are ignored).
+- The background device scan can no longer close the app on an error.
+- Tests: 10 new XboxMode tests (a whole evening: open, play, close mid-press; stop/start 3 times; phone
+  dropping out; no driver then installed; stopping while the phone mashes buttons, 20 runs). 54 automated
+  tests, all passed. **On the developer laptop with the real driver and the phone connected:** XInput saw
+  0 Xbox controllers before opening, 1 after opening (XBOX MODE ON in 0.5 s), 0 after clicking Stop, 1
+  after Start, 0 after closing the window (process ended); `--selftest` with the real driver: the
+  virtual Xbox controller was seen by Windows with A pressed.
+
 ## PadLink Bridge 1.0.1 (Windows PC app), 2026-11-09: "Install driver" no longer crashes
 
 - **Fix: clicking Install driver showed "Unhandled exception … 504 (Gateway Time-out)"** (reported by
