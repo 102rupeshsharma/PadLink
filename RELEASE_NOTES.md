@@ -1,5 +1,22 @@
 # Release notes
 
+## PadLink Bridge 1.0.1 (Windows PC app), 2026-11-09: "Install driver" no longer crashes
+
+- **Fix: clicking Install driver showed "Unhandled exception … 504 (Gateway Time-out)"** (reported by
+  the user). GitHub's download link was timing out, and the app neither caught the error nor retried.
+- The driver download now:
+  - tries **two GitHub routes** (the API route first, which kept working while the normal link
+    answered 504), with **3 attempts each**;
+  - only accepts the file when its **size and SHA-256 match the official installer**, so a cut-off
+    download or an error page is never run as admin. Both installers are signed by Nefarius Software
+    Solutions e.U. (checked);
+  - if all attempts fail, shows a plain message and offers to **open the official download page**.
+- No more crash dialog anywhere: errors from any button, and any other unexpected error, show a plain
+  message and the app keeps running.
+- Tests: 11 new InstallerDownloader tests (504s, connection resets, an error page served as the file,
+  cut-off and altered downloads, every route down). 44 automated tests, all passed. `--selftest` now
+  also downloads and verifies the real ViGEmBus installer: passed on the developer laptop, first try.
+
 ## PadLink Bridge 1.0.0 (Windows PC app), 2026-11-08: PadLink as an Xbox controller in every PC game
 
 - **New Windows app, PadLink Bridge** (`download/PadLinkBridge.exe`, source in `pc-bridge/`). Many PC

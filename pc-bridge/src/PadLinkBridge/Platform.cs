@@ -80,8 +80,6 @@ public static class XInput
 /// <summary>Driver checks and installers (official GitHub releases of the free Nefarius drivers).</summary>
 public static class Drivers
 {
-    public const string ViGEmUrl = "https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe";
-    public const string HidHideUrl = "https://github.com/nefarius/HidHide/releases/download/v1.5.230.0/HidHide_1.5.230_x64.exe";
 
     public static bool ViGEmInstalled()
     {
@@ -98,27 +96,39 @@ public static class Drivers
         return candidates.FirstOrDefault(File.Exists);
     }
 
-    /// <summary>Downloads an official installer and runs it (Windows asks for admin). True when it finished.</summary>
-    public static async Task<bool> DownloadAndRun(string url, IProgress<string> progress)
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(3) };
+
+    /// <summary>
+    /// Downloads the official installer (retries, two GitHub routes, size + SHA-256 checked) and runs it
+    /// (Windows asks for admin). Never throws: the result says what happened in plain words.
+    /// </summary>
+    public static async Task<DownloadResult> DownloadAndRun(DriverInstaller d, IProgress<string> progress)
     {
-        var file = Path.Combine(Path.GetTempPath(), Path.GetFileName(new Uri(url).LocalPath));
-        progress.Report("Downloading…");
-        using (var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) })
-        {
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("PadLinkBridge/1.0");
-            await using var src = await http.GetStreamAsync(url);
-            await using var dst = File.Create(file);
-            await src.CopyToAsync(dst);
-        }
+        var folder = Path.Combine(Path.GetTempPath(), "PadLinkBridge");
+        DownloadResult got;
+        try { got = await new InstallerDownloader(Http).DownloadAsync(d, folder, progress); }
+        catch (Exception e) { got = new(false, null, e.Message); }
+        if (!got.Ok) return new(false, null, $"Could not download {d.Name}: {got.Message}.");
+
         progress.Report("Installing… (allow the Windows prompt)");
         try
         {
-            using var p = Process.Start(new ProcessStartInfo(file) { UseShellExecute = true, Verb = "runas" });
-            if (p == null) return false;
+            using var p = Process.Start(new ProcessStartInfo(got.FilePath!) { UseShellExecute = true, Verb = "runas" });
+            if (p == null) return new(false, null, "The installer did not start.");
             await p.WaitForExitAsync();
-            return p.ExitCode == 0;
+            // 0 = done, 3010 = done but a restart is needed
+            return p.ExitCode is 0 or 3010
+                ? new(true, got.FilePath, p.ExitCode == 3010 ? "Installed. Restart the PC once." : "Installed.")
+                : new(false, null, $"The installer stopped (code {p.ExitCode}).");
         }
-        catch (System.ComponentModel.Win32Exception) { return false; } // user said No to the prompt
+        catch (System.ComponentModel.Win32Exception) { return new(false, null, "Windows asked for permission and it was not given (No was clicked)."); }
+        catch (Exception e) { return new(false, null, e.Message); }
+    }
+
+    /// <summary>Opens the official download page in the browser (manual fallback).</summary>
+    public static void OpenPage(string url)
+    {
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
     }
 
     /// <summary>

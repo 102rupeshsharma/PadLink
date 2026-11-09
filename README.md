@@ -203,6 +203,8 @@ exit, delete the exe.
 | **Works in `joy.cpl`, not in a PC game or port** (e.g. God of War 3 PC port) | That game only accepts Xbox controllers. Install **PadLink Bridge** on the PC ([guide](#-pc-games-and-ports-padlink-bridge)). |
 | **Bridge: "Windows protected your PC"** | Click **More info → Run anyway**. The app is new and has no paid signing certificate. |
 | **Bridge: step 2 stays "Waiting for PadLink"** | On the phone: **Connect**, then **Open Controller**. Check that PadLink shows in `joy.cpl`. If HidHide is on and you just reinstalled the Bridge, click **Turn off** and **Turn on** again. |
+| **Bridge: "Could not download" when clicking Install driver** | A short GitHub/internet problem. Click **Install driver** again after a minute (version **1.0.1** or newer also retries by itself). Or click **Yes** in the message: it opens the official download page; download the `.exe` there and run it. |
+| **Bridge: "Unhandled exception … 504 (Gateway Time-out)"** | You have version 1.0.0. Download **PadLink Bridge 1.0.1** ([Download](#-download)), which fixes this. |
 | **Bridge: Test failed** | Restart the PC once after installing the driver, then click **Test** again. |
 | **Bridge: game reacts twice to one press / sees two controllers** | Turn on **Hide the original PadLink from games** in the Bridge window. |
 | **Bridge: game still sees nothing** | Start PadLink Bridge and connect PadLink **before** starting the game. Some games only look for controllers at start. |
@@ -390,9 +392,9 @@ SHA-256: `e244c45e5c50aebb50f0ee634a37404a43c7d5bfcb7ec08fda1061ff9e813315`
 
 ### 💻 2. PC app: only for PC games and ports
 
-### **[⬇️ Download PadLink Bridge for Windows (v1.0.0, 52 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLinkBridge.exe)**
+### **[⬇️ Download PadLink Bridge for Windows (v1.0.1, 52 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLinkBridge.exe)**
 
 Click the link **on your Windows 10/11 PC** (64-bit). Not needed for PCSX2 or other emulators. Setup:
 [PC games and ports: PadLink Bridge](#-pc-games-and-ports-padlink-bridge).
 
-SHA-256: `105a406c462a0704aeb2b2b4a5a081ae7142db07d406aec6b534f016ab9b2ffe`
+SHA-256: `77df588bc3ec125e5a46cdfc099723dd34955f0fa0bf2979b92027ff231f00d8`

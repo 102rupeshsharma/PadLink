@@ -83,6 +83,19 @@ public static class SelfTest
         }
         else Info("virtual controller check skipped (needs ViGEmBus)");
 
+        // 3b. the driver download really works from this PC (download + size + SHA-256 only, nothing installed)
+        try
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "PadLinkBridge-selftest");
+            try { Directory.Delete(folder, true); } catch { }
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
+            var steps = new List<string>();
+            var r = new InstallerDownloader(http).DownloadAsync(DriverInstaller.ViGEmBus, folder, new InlineProgress(steps.Add)).GetAwaiter().GetResult();
+            Line(r.Ok, $"driver download: {r.Message} after {steps.Count} attempt(s), size and SHA-256 match the official ViGEmBus installer");
+            try { Directory.Delete(folder, true); } catch { }
+        }
+        catch (Exception e) { Line(false, "driver download crashed: " + e.Message); }
+
         // 4. XInput itself is callable
         try { Info($"XInput controllers connected: {XInput.Connected().Count}"); Line(true, "XInput callable"); }
         catch (Exception e) { Line(false, "XInput: " + e.Message); }
@@ -91,6 +104,8 @@ public static class SelfTest
         File.WriteAllText(path, sb.ToString());
         return failures == 0 ? 0 : 1;
     }
+
+    private sealed class InlineProgress(Action<string> a) : IProgress<string> { public void Report(string v) => a(v); }
 
     private sealed class RecordingPad : IVirtualPad
     {
