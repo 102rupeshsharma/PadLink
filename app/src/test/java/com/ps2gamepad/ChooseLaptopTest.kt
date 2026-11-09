@@ -128,12 +128,16 @@ class ChooseLaptopViewModelTest {
         assertEquals(1, scanner.starts)
         scanner.found.value = listOf(laptopB, HostDevice("CC:CC", "Galaxy Buds", isComputer = false))
         vm.pairAndConnect(laptopB); runCurrent()
-        assertEquals(listOf(laptopB.address), scanner.pairRequests)
+        // 3.6.2: the gamepad starts BEFORE pairing, so Windows pairs a game controller, not a plain phone
+        assertEquals(1, hid.registerCalls)
+        assertTrue("no pairing before the gamepad is registered", scanner.pairRequests.isEmpty())
         assertEquals(laptopB.address, vm.pairing.value)
+        hid.emit(HidEvent.AppStatusChanged(true)); runCurrent()
+        assertEquals(listOf(laptopB.address), scanner.pairRequests)
+        assertTrue("never auto-connects to the old laptop A meanwhile", hid.connects.isEmpty())
         paired = listOf(laptopA, laptopB)
         scanner.finishPairing(laptopB.address, ok = true); runCurrent()
         assertEquals(null, vm.pairing.value)
-        hid.emit(HidEvent.AppStatusChanged(true)); runCurrent()
         assertEquals("connects to the newly paired laptop, not A", listOf(laptopB.address), hid.connects)
         connected(laptopB)
         assertEquals(laptopB, vm.knownPc)
@@ -142,10 +146,34 @@ class ChooseLaptopViewModelTest {
     @Test fun refusedPairingConnectsNothing() = runTest(dispatcher) {
         open()
         vm.pairAndConnect(laptopB); runCurrent()
+        hid.emit(HidEvent.AppStatusChanged(true)); runCurrent()
         scanner.finishPairing(laptopB.address, ok = false); runCurrent()
         assertEquals(null, vm.pairing.value)
-        assertEquals(0, hid.registerCalls)
         assertTrue(hid.connects.isEmpty())
+    }
+
+    @Test fun gamepadThatCannotStartPairsNothing() = runTest(dispatcher) {
+        open()
+        vm.pairAndConnect(laptopB); runCurrent()
+        hid.emit(HidEvent.RegisterRejected("registerApp() returned false")); runCurrent()
+        assertTrue("pairing without the gamepad would make Windows see a plain phone", scanner.pairRequests.isEmpty())
+        assertEquals(null, vm.pairing.value)
+    }
+
+    @Test fun gamepadThatNeverAnswersStopsWaiting() = runTest(dispatcher) {
+        open()
+        vm.pairAndConnect(laptopB); runCurrent()
+        advanceTimeBy(MainViewModel.REGISTER_WAIT_MS + 1); runCurrent()
+        assertTrue(scanner.pairRequests.isEmpty())
+        assertEquals(null, vm.pairing.value)
+    }
+
+    @Test fun alreadyRunningGamepadPairsAtOnce() = runTest(dispatcher) {
+        open()
+        vm.prepareForNewLaptop(); runCurrent()
+        hid.emit(HidEvent.AppStatusChanged(true)); runCurrent()
+        vm.pairAndConnect(laptopB); runCurrent()
+        assertEquals(listOf(laptopB.address), scanner.pairRequests)
     }
 }
 
@@ -203,6 +231,8 @@ class ChooseLaptopUiTest {
         rule.runOnIdle { scanner.found.value = listOf(laptopA, newLaptop); scanner.scanning.value = false }
         rule.onNodeWithText("GAMING-PC").performScrollTo().assertIsDisplayed()
         rule.onNodeWithTag("found_DD:DD_btn").performScrollTo().performClick()
+        rule.runOnIdle { assertTrue("gamepad first, then pairing", scanner.pairRequests.isEmpty()) }
+        rule.runOnIdle { hid.emit(HidEvent.AppStatusChanged(true)) }
         rule.runOnIdle { assertEquals(listOf("DD:DD"), scanner.pairRequests) }
     }
 

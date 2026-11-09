@@ -386,6 +386,30 @@ class MainViewModel(
     fun pairAndConnect(host: HostDevice) {
         val s = laptopScanner ?: return
         _pairing.value = host.address
+        if (hidState.value.registration == RegistrationState.Registered) { startPairing(s, host); return }
+        // 3.6.2: Windows reads the phone's services WHILE pairing. If the gamepad is not registered yet, Windows
+        // pairs it as a plain phone: the PC says "Connected" but never treats it as a game controller.
+        // So: start the gamepad first (without connecting to any old laptop), then pair.
+        log.add("Starting the gamepad before pairing, so ${host.displayName} sees a game controller")
+        chosenHost = null
+        waitingForNewLaptop = true
+        autoConnectJob?.cancel()
+        reconnectJob?.cancel()
+        startGamepadForChoice()
+        viewModelScope.launch {
+            val ready = withTimeoutOrNull(REGISTER_WAIT_MS) {
+                hidState.first { it.registration == RegistrationState.Registered || it.registration is RegistrationState.Failed }
+            }
+            if (ready?.registration != RegistrationState.Registered) {
+                _pairing.value = null
+                log.add("The gamepad did not start, so ${host.displayName} was not paired")
+                return@launch
+            }
+            startPairing(s, host)
+        }
+    }
+
+    private fun startPairing(s: com.ps2gamepad.bluetooth.LaptopScanner, host: HostDevice) {
         log.add("Pairing with ${host.displayName}...")
         val started = s.pair(host.address) { ok ->
             _pairing.value = null
@@ -852,6 +876,8 @@ class MainViewModel(
         const val CONNECT_TIMEOUT_MS = 20_000L
         /** Connect waits this long for one laptop before trying the next paired laptop. */
         const val ATTEMPT_MS = 8_000L
+        /** Pair & connect waits this long for the gamepad to start before pairing. */
+        const val REGISTER_WAIT_MS = 10_000L
     }
 
     override fun onCleared() {
