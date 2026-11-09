@@ -7,29 +7,28 @@ public enum XboxModeState
     Off,
     /// <summary>The Xbox controller driver (ViGEmBus) is not installed yet.</summary>
     DriverMissing,
-    /// <summary>Xbox mode on, waiting for the phone to connect.</summary>
+    /// <summary>Xbox mode on, no phone connected yet.</summary>
     WaitingForPadLink,
-    /// <summary>Xbox mode on: games see an Xbox controller.</summary>
+    /// <summary>Xbox mode on: games see one Xbox controller per connected phone.</summary>
     On,
 }
 
 /// <summary>
-/// Xbox mode as a simple switch. The app is meant to be used like this:
-/// open PadLink Bridge → <see cref="Start"/> (Xbox mode on); close it → <see cref="Stop"/> (back to the normal
-/// controller). Stop always releases every button and stick, then unplugs the Xbox controller, and nothing can
-/// plug it back in afterwards.
+/// Xbox mode as a simple switch. Open PadLink Bridge → <see cref="Start"/>; close it → <see cref="Stop"/>
+/// (back to the normal controller). Every connected phone gets its own Xbox controller (<see cref="PadHub"/>).
+/// Stop releases every button and stick of every player, then unplugs all Xbox controllers, and nothing can
+/// plug them back in afterwards.
 /// </summary>
-public sealed class XboxMode(Func<IVirtualPad> createPad, Func<BridgeEngine, IDisposable> startReading)
+public sealed class XboxMode(Func<IVirtualPad> createPad, Func<PadHub, IDisposable> startReading, Func<bool>? driverInstalled = null)
 {
     private readonly object _lock = new();
-    private IVirtualPad? _pad;
     private IDisposable? _reader;
     private bool _driverMissing;
 
-    /// <summary>The running bridge (null when off).</summary>
-    public BridgeEngine? Engine { get; private set; }
+    /// <summary>The running hub (null when off).</summary>
+    public PadHub? Hub { get; private set; }
 
-    /// <summary>Raised on start/stop and whenever PadLink connects or disconnects (any thread).</summary>
+    /// <summary>Raised on start/stop and whenever a phone connects, disconnects or presses something (any thread).</summary>
     public event Action? Changed;
 
     public XboxModeState State
@@ -38,49 +37,50 @@ public sealed class XboxMode(Func<IVirtualPad> createPad, Func<BridgeEngine, IDi
         {
             lock (_lock)
             {
-                if (Engine == null) return _driverMissing ? XboxModeState.DriverMissing : XboxModeState.Off;
-                return Engine.Status == BridgeStatus.Active ? XboxModeState.On : XboxModeState.WaitingForPadLink;
+                if (Hub == null) return _driverMissing ? XboxModeState.DriverMissing : XboxModeState.Off;
+                return Hub.Count > 0 ? XboxModeState.On : XboxModeState.WaitingForPadLink;
             }
         }
     }
 
-    public bool IsRunning { get { lock (_lock) return Engine != null; } }
+    public bool IsRunning { get { lock (_lock) return Hub != null; } }
+
+    private bool DriverInstalled()
+    {
+        if (driverInstalled != null) return driverInstalled();
+        try { (createPad() as IDisposable)?.Dispose(); return true; } catch { return false; }
+    }
 
     /// <summary>Turns Xbox mode on. False when the driver is missing (then <see cref="State"/> is DriverMissing).</summary>
     public bool Start()
     {
         lock (_lock)
         {
-            if (Engine != null) return true;
-            try { _pad = createPad(); }
-            catch { _pad = null; _driverMissing = true; }
-            if (_pad == null) { _driverMissing = true; }
-            else
+            if (Hub != null) return true;
+            _driverMissing = !DriverInstalled();
+            if (!_driverMissing)
             {
-                _driverMissing = false;
-                var engine = new BridgeEngine(_pad);
-                engine.Changed += () => Changed?.Invoke();
-                Engine = engine;
-                try { _reader = startReading(engine); }
-                catch { engine.Close(); Engine = null; (_pad as IDisposable)?.Dispose(); _pad = null; throw; }
+                var hub = new PadHub(createPad);
+                hub.Changed += () => Changed?.Invoke();
+                Hub = hub;
+                try { _reader = startReading(hub); }
+                catch { hub.CloseAll(); Hub = null; throw; }
             }
         }
         Changed?.Invoke();
         return !_driverMissing;
     }
 
-    /// <summary>Turns Xbox mode off: stop reading, release everything, unplug, free the driver. Safe to call twice.</summary>
+    /// <summary>Turns Xbox mode off: stop reading, release everything, unplug every controller. Safe to call twice.</summary>
     public void Stop()
     {
         lock (_lock)
         {
-            if (Engine == null) return;
+            if (Hub == null) return;
             try { _reader?.Dispose(); } catch { }
             _reader = null;
-            Engine.Close(); // neutral first, then unplug; late reports/scans are ignored from now on
-            Engine = null;
-            try { (_pad as IDisposable)?.Dispose(); } catch { }
-            _pad = null;
+            Hub.CloseAll();
+            Hub = null;
         }
         Changed?.Invoke();
     }

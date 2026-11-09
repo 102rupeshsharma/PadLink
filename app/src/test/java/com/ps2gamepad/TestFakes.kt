@@ -24,7 +24,13 @@ class FakeHid : HidController {
     fun emit(e: HidEvent) { s.value = HidStateReducer.reduce(s.value, e) }
     var lastAutoConnect = true
     val autoConnectFlags = mutableListOf<Boolean>()
+    /** Controller name the PC would see, and the name each register() used. */
+    var controllerName = "PadLink Gamepad"
+        private set
+    val registeredNames = mutableListOf<String>()
+    override fun setControllerName(name: String) { controllerName = name }
     override fun register(autoConnectPlugged: Boolean) {
+        registeredNames += controllerName
         autoConnectFlags += autoConnectPlugged
         registerCalls++; lastAutoConnect = autoConnectPlugged; emit(HidEvent.RegisterRequested)
     }

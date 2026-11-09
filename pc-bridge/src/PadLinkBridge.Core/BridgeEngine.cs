@@ -6,6 +6,8 @@ public interface IVirtualPad
     void Connect();
     void Submit(XboxState state);
     void Disconnect();
+    /// <summary>Which Xbox controller number Windows gave it (1-4), when known.</summary>
+    int? XboxSlot => null;
 }
 
 /// <summary>Bridge status, shown in the tray and the setup window.</summary>

@@ -121,6 +121,7 @@ fun ControllerScreen(vm: MainViewModel) {
     val bt by vm.bluetoothState.collectAsStateWithLifecycle()
     val perm by vm.permission.collectAsStateWithLifecycle()
     val hid by vm.hidState.collectAsStateWithLifecycle()
+    val player by vm.player.collectAsStateWithLifecycle()
     val status = overallStatus(bt, perm, hid)
     val store by vm.profiles.collectAsStateWithLifecycle()
     val neu = NeuThemes.BLACK
@@ -155,6 +156,7 @@ fun ControllerScreen(vm: MainViewModel) {
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
         ) {
             SmallChipButton("Home") { vm.navigate(Screen.HOME) }
+            PlayerBadge(player)
             ConnectionChip(status, Modifier.testTag("connectionChip"), bg = neu.chip, fg = neu.text)
             SmallChipButton(if (showOverlay) "Hide" else "Live") { showOverlay = !showOverlay }
             SmallChipButton("Edit") { vm.setEditMode(true) }
@@ -472,6 +474,16 @@ private fun MapChip(text: String, on: Boolean, tag: String, fontSize: androidx.c
         text, color = Color.White, fontSize = fontSize, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
         modifier = Modifier.background(if (on) Palette.Info else Color(0xFF2A2F3A), RoundedCornerShape(50)).clickable(onClick = onClick)
             .padding(horizontal = 9.dp, vertical = 4.dp).testTag(tag),
+    )
+}
+
+/** Which player this phone is (P1, P2…), so two players never grab the wrong phone. */
+@Composable
+private fun PlayerBadge(player: Int) {
+    Text(
+        "P$player", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black,
+        modifier = Modifier.background(if (player == 1) Color(0xFF4C6FFF) else Color(0xFFE0475B), RoundedCornerShape(50))
+            .padding(horizontal = 9.dp, vertical = 4.dp).testTag("playerBadge"),
     )
 }
 

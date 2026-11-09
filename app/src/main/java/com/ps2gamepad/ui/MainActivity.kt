@@ -185,6 +185,7 @@ class MainActivity : ComponentActivity() {
                 phoneNameControl = com.ps2gamepad.bluetooth.AdapterPhoneName(app) { bt.adapter },
                 motionSource = com.ps2gamepad.motion.AndroidMotionSource(app),
                 laptopScanner = com.ps2gamepad.bluetooth.AndroidLaptopScanner(app) { bt.adapter },
+                playerPrefs = com.ps2gamepad.bluetooth.AndroidPlayerPrefs(app),
                 batteryPercent = {
                     battery?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)?.takeIf { it in 0..100 }
                 },

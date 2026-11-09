@@ -292,6 +292,26 @@ Window opened (screenshot checked at the laptop's DPI), second copy refused, tra
 | B9 | 1.1.0 on/off with the real driver and the phone connected (XInput count) | 0 before, 1 when opened, 0 after Stop, 1 after Start, 0 after closing | ✅ 0 → 1 → 0 → 1 → 0, process ended (automated UI clicks on the laptop) |
 | B10 | 1.1.0 window | status, Stop/Start, how-to readable at the laptop's scaling | ✅ checked on screenshots (ON and OFF) |
 
+## 4.16 Two players (PadLink 3.6.0 + Bridge 1.2.0) ⏳
+
+Automated, phone (MOCK Bluetooth): PlayerSlotTest (3), TwoPlayersViewModelTest (7: two phones connected
+and pressing at once, each registers under its own name; locked while connected; re-register after a
+change; remembered), TwoPlayersUiTest (3: tap P2, locked while connected, P2 badge on the controller).
+Automated, Bridge: TwoPlayerTests (20) + XboxModeTests (11) on the multi-phone hub. **74 passed.**
+
+Real PC (Windows 11, real ViGEmBus, no phone needed), `--selftest` 1.2.0: two Xbox controllers seen by
+XInput, player 1 = slot 1 with only A, player 2 = slot 2 with only B, both removed on stop:
+**✅ 6 of 6 runs** (the first run crashed with heap corruption, a double free; fixed before these runs).
+
+| # | Test on real hardware | Expected | Result |
+|---|---|---|---|
+| M1 | Phone 2 set to P2, paired | PC lists "PadLink" and "PadLink P2" | ⏳ |
+| M2 | Both phones connected, `joy.cpl` | "PadLink Gamepad" and "PadLink Gamepad P2" both react to their own phone | ⏳ |
+| M3 | PCSX2: Port 1 = phone 1, Port 2 = phone 2, Mortal Kombat versus | Each phone moves its own fighter | ⏳ |
+| M4 | Bridge open, both phones connected | XBOX MODE ON · 2 PLAYERS, P1 → Xbox 1, P2 → Xbox 2 | ⏳ |
+| M5 | PC fighting game, 2 players | Each phone controls its own player | ⏳ |
+| M6 | Phone 2 disconnects mid-fight | Player 2 stops, player 1 keeps playing | ⏳ |
+
 ## 5. Final acceptance checklist
 
 | # | Criterion | Status |

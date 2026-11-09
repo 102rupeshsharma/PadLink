@@ -49,11 +49,11 @@ class FakePhoneName(var name: String? = "POCO F6", var allowRename: Boolean = tr
     override var originalName: String? = null
     var renames = 0
     override fun current() = name
-    override fun applyGamepadName(): Boolean {
-        if (name == PhoneNameControl.GAMEPAD_NAME) return true
+    override fun applyGamepadName(name: String): Boolean {
+        if (this.name == name) return true
         if (!allowRename) return false
-        if (originalName == null) originalName = name
-        name = PhoneNameControl.GAMEPAD_NAME; renames++; return true
+        if (originalName == null && !com.ps2gamepad.bluetooth.PlayerSlot.isGamepadName(this.name)) originalName = this.name
+        this.name = name; renames++; return true
     }
     override fun restoreOriginal(): Boolean { val o = originalName ?: return false; name = o; originalName = null; return true }
 }
@@ -262,7 +262,7 @@ class SimpleHomeUiTest {
 
     @Test fun noStylesTileAnyMore() {
         rule.onNodeWithTag("homeStyles").assertDoesNotExist()
-        rule.onNodeWithTag("homePreview").assertIsDisplayed()
+        rule.onNodeWithTag("homePreview").performScrollTo().assertIsDisplayed() // below the Player row since 3.6.0
     }
 
     @Test fun moreOpensTheFullMenu() {

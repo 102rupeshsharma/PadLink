@@ -38,6 +38,8 @@ interface HidController {
     val stats: StateFlow<SenderStats>
     /** [autoConnectPlugged]: reconnect to the stack's last host after registering (false after a user Disconnect). */
     fun register(autoConnectPlugged: Boolean = true)
+    /** The controller name the PC shows ("PadLink Gamepad", "PadLink Gamepad P2"); used at the next register. */
+    fun setControllerName(name: String) {}
     fun unregister()
     fun connect(address: String)
     fun disconnect()
@@ -169,6 +171,9 @@ class HidDeviceManager(
 
     // ---------------------------------------------------------------- registration
 
+    @Volatile private var controllerName: String = HidDescriptor.SDP_NAME
+    override fun setControllerName(name: String) { controllerName = name }
+
     override fun register(autoConnectPlugged: Boolean) {
         this.autoConnectPlugged = autoConnectPlugged
         runOnCallbackThread {
@@ -190,13 +195,13 @@ class HidDeviceManager(
     private fun doRegister() {
         val hid = hidDevice ?: return
         val sdp = BluetoothHidDeviceAppSdpSettings(
-            HidDescriptor.SDP_NAME,
+            controllerName,
             HidDescriptor.SDP_DESCRIPTION,
             HidDescriptor.SDP_PROVIDER,
             (BluetoothHidDevice.SUBCLASS1_NONE.toInt() or BluetoothHidDevice.SUBCLASS2_GAMEPAD.toInt()).toByte(),
             HidDescriptor.REPORT_DESCRIPTOR,
         )
-        log("Registering with gamepad descriptor")
+        log("Registering with gamepad descriptor as \"$controllerName\"")
         dispatch(HidEvent.RegisterRequested)
         val ok = try {
             hid.registerApp(sdp, null, null, callbackExecutor, HidDeviceCallback(listener))
