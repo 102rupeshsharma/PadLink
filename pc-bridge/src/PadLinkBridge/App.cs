@@ -4,86 +4,35 @@ using PadLinkBridge.Core;
 namespace PadLinkBridge;
 
 /// <summary>
-/// The running bridge: tray icon, the virtual Xbox controller, the PadLink watcher and the window.
+/// PadLink Bridge as an on/off app:
+///  - open it → Xbox mode starts (PC games see an Xbox controller once the phone connects);
+///  - close it (or click Stop) → Xbox mode stops and PadLink is a normal controller again.
+/// No tray, no start with Windows: when the window is closed, nothing of the bridge keeps running.
 /// </summary>
 public sealed class App : ApplicationContext
 {
     public Settings Settings { get; } = Settings.Load();
-    public ViGEmPad? Pad { get; private set; }
-    public BridgeEngine? Engine { get; private set; }
+    public XboxMode Mode { get; }
     public PadLinkWatcher? Watcher { get; private set; }
-    public bool Exiting { get; private set; }
 
-    private readonly NotifyIcon _tray;
     private readonly MainForm _form;
-    private readonly SynchronizationContext _ui;
-    private BridgeStatus _shown = BridgeStatus.WaitingForPadLink;
 
-    public App(bool startInTray)
+    public App()
     {
-        _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-        // first run: start with Windows by default (the user can untick it); before the window reads it
-        if (!Settings.FirstRunDone) { Autostart.Enabled = true; Settings.FirstRunDone = true; Settings.Save(); }
-        TryCreatePad();
+        // older versions (1.0.0/1.0.1) started with Windows into the tray; this version is started by hand
+        try { Autostart.Enabled = false; } catch { }
+
+        Mode = new XboxMode(
+            createPad: () => new ViGEmPad(), // throws without the driver → DriverMissing
+            startReading: engine => Watcher = new PadLinkWatcher(engine));
         _form = new MainForm(this);
-        _tray = new NotifyIcon { Text = "PadLink Bridge: waiting for PadLink", Visible = true, Icon = MakeIcon(Color.Gray) };
-        var menu = new ContextMenuStrip();
-        menu.Items.Add("Open PadLink Bridge", null, (_, _) => ShowWindow());
-        menu.Items.Add("Exit", null, (_, _) => Exit());
-        _tray.ContextMenuStrip = menu;
-        _tray.DoubleClick += (_, _) => ShowWindow();
-
-        if (!startInTray || Pad == null) ShowWindow();
-    }
-
-    /// <summary>Creates the virtual controller once the driver exists (also after installing it).</summary>
-    public void TryCreatePad()
-    {
-        if (Pad != null) return;
-        try { Pad = new ViGEmPad(); } catch { Pad = null; return; }
-        Engine = new BridgeEngine(Pad);
-        Engine.Changed += () => _ui.Post(_ => OnEngineChanged(), null);
-        Watcher = new PadLinkWatcher(Engine);
-    }
-
-    private void OnEngineChanged()
-    {
-        var e = Engine;
-        if (e == null || e.Status == _shown) return;
-        _shown = e.Status;
-        if (e.Status == BridgeStatus.Active)
-        {
-            _tray.Icon = MakeIcon(Color.FromArgb(52, 199, 89));
-            _tray.Text = "PadLink Bridge: Xbox controller active";
-            _tray.ShowBalloonTip(2500, "PadLink connected", "Games now see an Xbox controller.", ToolTipIcon.Info);
-        }
-        else
-        {
-            _tray.Icon = MakeIcon(Color.Gray);
-            _tray.Text = "PadLink Bridge: waiting for PadLink";
-        }
-    }
-
-    public void ShowWindow()
-    {
+        _form.FormClosed += (_, _) => { Mode.Stop(); ExitThread(); };
+        MainForm = _form;
+        Mode.Start();
         _form.Show();
-        if (_form.WindowState == FormWindowState.Minimized) _form.WindowState = FormWindowState.Normal;
-        _form.Activate();
     }
 
-    private void Exit()
-    {
-        Exiting = true;
-        Watcher?.Dispose();
-        Engine?.OnPadLinkLost(); // release everything and unplug before leaving
-        Pad?.Dispose();
-        _tray.Visible = false;
-        _tray.Dispose();
-        _form.Close();
-        ExitThread();
-    }
-
-    /// <summary>Round "PL" icon in [color] (gray = waiting, green = active).</summary>
+    /// <summary>Round "PL" icon in [color].</summary>
     public static Icon MakeIcon(Color color)
     {
         using var bmp = new Bitmap(32, 32);

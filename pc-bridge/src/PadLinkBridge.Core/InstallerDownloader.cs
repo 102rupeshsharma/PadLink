@@ -58,7 +58,7 @@ public sealed class InstallerDownloader(HttpClient http, int attemptsPerSource =
                 try
                 {
                     using var req = new HttpRequestMessage(HttpMethod.Get, url);
-                    req.Headers.UserAgent.ParseAdd("PadLinkBridge/1.0.1");
+                    req.Headers.UserAgent.ParseAdd("PadLinkBridge/1.1.0");
                     req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
                     using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
                     if (!resp.IsSuccessStatusCode)

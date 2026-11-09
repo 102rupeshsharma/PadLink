@@ -150,34 +150,36 @@ layouts and settings stay. You only need to pair again if the guide or the relea
 
 Emulators accept any controller, but many **PC games and ports only accept Xbox controllers**
 (for example the **God of War 3 PC port**, most Steam games). They ignore PadLink, even when it works
-in `joy.cpl`. **PadLink Bridge** is a small free Windows app that fixes this: it reads PadLink over
-Bluetooth and gives Windows a **virtual Xbox 360 controller**. Games then see a real Xbox controller.
+in `joy.cpl`. **PadLink Bridge** is a small free Windows app that fixes this: while it is open, your
+PadLink becomes an **Xbox 360 controller** for games.
 
 ```
 PadLink (phone) ──Bluetooth──► PadLink Bridge (PC) ──► Xbox 360 controller ──► any PC game
 ```
 
-**Set it up once (5 minutes):**
+**It works like a switch:**
+
+| PadLink Bridge is… | Your phone is… | Use it for |
+|---|---|---|
+| **open** (green **XBOX MODE ON**) | an **Xbox controller** | PC games and ports |
+| **closed** | a **normal controller**, exactly as before | PCSX2 and other emulators |
+
+**First time only (5 minutes):**
 
 1. Do Steps 1-3 above first (phone app installed, paired, visible in `joy.cpl`).
 2. On the PC download **PadLinkBridge.exe** ([Download](#-download), 52 MB). Put it somewhere it can
-   stay, for example `Documents\PadLink`.
+   stay, for example `Documents\PadLink`. Tip: right-click it → **Send to → Desktop (create shortcut)**.
 3. Double-click it. Windows may show **"Windows protected your PC"** (the app is new and not signed):
    click **More info → Run anyway**.
-4. The PadLink Bridge window shows 3 steps. Follow them top to bottom:
-   - **1. Driver:** click **Install driver** and allow the Windows prompt. This installs **ViGEmBus**,
-     the free, widely used driver that creates virtual Xbox controllers. Once only.
-   - **2. PadLink:** on the phone tap **Connect** and **Open Controller**. The line turns green:
-     **PadLink connected ✓**.
-   - **3. Test:** click **Test**. "Test passed ✓" means Windows sees an Xbox controller.
-5. **Recommended: Hide the original PadLink from games.** Otherwise some games see *two* controllers
-   (PadLink and Xbox) and a button may act twice. Click **Install HidHide** (free driver, once; Windows
-   may ask for a restart), connect PadLink, then click **Turn on**.
-6. Leave **Start PadLink Bridge with Windows** ticked. It then runs quietly in the tray (the **PL**
-   icon next to the clock: grey = waiting, green = Xbox controller active).
+4. It says **DRIVER NEEDED**: click **Install driver** and allow the Windows prompt. This installs
+   **ViGEmBus**, the free, widely used driver that creates Xbox controllers. Only once, only this one.
+5. Click **Test**. "Test passed ✓" means Windows sees an Xbox controller.
 
-**Every next time:** just connect PadLink on the phone. The Bridge is already running and the tray
-icon turns green. Start the game. Buttons are already right (no binding needed):
+**Every time you play a PC game:**
+
+1. Open **PadLink Bridge** on the PC.
+2. On the phone: PadLink → **Connect** → **Open Controller**.
+3. The window shows a green **XBOX MODE ON**. Start your game. The buttons are already right:
 
 | PadLink | Xbox | PadLink | Xbox |
 |---|---|---|---|
@@ -186,12 +188,17 @@ icon turns green. Start the game. Buttons are already right (no binding needed):
 | □ | X | Select / Start | Back / Start |
 | △ | Y | L3 / R3, D-pad, sticks | L3 / R3, D-pad, sticks |
 
-**Emulators with the Bridge running:** PCSX2 can then also use the Xbox controller (in PCSX2 choose the
-**XInput** controller and click **Automatic Mapping**). Your old PadLink bindings keep working unless
-you turned on "Hide the original PadLink".
+4. **Done playing:** close the PadLink Bridge window. Xbox mode stops and your phone is a normal
+   controller again. (Or click **Stop Xbox mode** to switch it off without closing.)
 
-To stop it: right-click the **PL** tray icon → **Exit**. To remove it: untick "Start with Windows",
-exit, delete the exe.
+**Playing PCSX2?** Keep PadLink Bridge **closed**. Your PCSX2 buttons work as always.
+
+How do I know which mode I am in? Look at the PadLink Bridge window: **green XBOX MODE ON** = Xbox
+controller. Window closed (not in the taskbar) = normal controller.
+
+PadLink Bridge does not start with Windows and does not run in the background: when its window is
+closed, it is completely off. To remove it, delete the exe (the driver can stay; it does nothing on
+its own, or remove **ViGEmBus** in Windows Settings → Apps).
 
 ## 🛠️ Troubleshooting
 
@@ -202,11 +209,12 @@ exit, delete the exe.
 | **Connected, but the game doesn't react** | Check `joy.cpl` (Step 3). If it works there, bind the buttons in the emulator (Step 4). |
 | **Works in `joy.cpl`, not in a PC game or port** (e.g. God of War 3 PC port) | That game only accepts Xbox controllers. Install **PadLink Bridge** on the PC ([guide](#-pc-games-and-ports-padlink-bridge)). |
 | **Bridge: "Windows protected your PC"** | Click **More info → Run anyway**. The app is new and has no paid signing certificate. |
-| **Bridge: step 2 stays "Waiting for PadLink"** | On the phone: **Connect**, then **Open Controller**. Check that PadLink shows in `joy.cpl`. If HidHide is on and you just reinstalled the Bridge, click **Turn off** and **Turn on** again. |
+| **Bridge stays "WAITING FOR PADLINK"** | On the phone: **Connect**, then **Open Controller**. Check that PadLink shows in `joy.cpl`. If the Bridge window shows **Show PadLink**, click it (an older version hid PadLink). |
 | **Bridge: "Could not download" when clicking Install driver** | A short GitHub/internet problem. Click **Install driver** again after a minute (version **1.0.1** or newer also retries by itself). Or click **Yes** in the message: it opens the official download page; download the `.exe` there and run it. |
-| **Bridge: "Unhandled exception … 504 (Gateway Time-out)"** | You have version 1.0.0. Download **PadLink Bridge 1.0.1** ([Download](#-download)), which fixes this. |
+| **Bridge: "Unhandled exception … 504 (Gateway Time-out)"** | You have version 1.0.0. Download the newest PadLink Bridge ([Download](#-download)), which fixes this. |
 | **Bridge: Test failed** | Restart the PC once after installing the driver, then click **Test** again. |
-| **Bridge: game reacts twice to one press / sees two controllers** | Turn on **Hide the original PadLink from games** in the Bridge window. |
+| **Bridge: game reacts twice to one press / sees two controllers** | The game reads both PadLink and the Xbox controller. In the game's settings pick the **Xbox** controller, or turn off its "generic / DirectInput controller" support. |
+| **PCSX2 does not react after using the Bridge** | Close PadLink Bridge. If its window showed **Show PadLink**, open it once, click **Show PadLink**, then close it. |
 | **Bridge: game still sees nothing** | Start PadLink Bridge and connect PadLink **before** starting the game. Some games only look for controllers at start. |
 | **Character keeps moving after I let go of the stick** | Update to **3.2.0** or newer (fixed: the app now sends stick movement at a rate the Bluetooth link can carry, and "stop" always goes first). If it still happens, move the phone closer to the laptop and turn off other Bluetooth devices you aren't using. |
 | **Buttons feel slow / laggy** | Update to **3.2.0** or newer (touches go straight to Bluetooth, buttons never wait behind stick movement). USB 3 ports and hubs right next to a Bluetooth dongle can disturb it: use a USB 2 port or a short extension cable for the dongle. |
@@ -392,9 +400,9 @@ SHA-256: `e244c45e5c50aebb50f0ee634a37404a43c7d5bfcb7ec08fda1061ff9e813315`
 
 ### 💻 2. PC app: only for PC games and ports
 
-### **[⬇️ Download PadLink Bridge for Windows (v1.0.1, 52 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLinkBridge.exe)**
+### **[⬇️ Download PadLink Bridge for Windows (v1.1.0, 52 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLinkBridge.exe)**
 
 Click the link **on your Windows 10/11 PC** (64-bit). Not needed for PCSX2 or other emulators. Setup:
 [PC games and ports: PadLink Bridge](#-pc-games-and-ports-padlink-bridge).
 
-SHA-256: `77df588bc3ec125e5a46cdfc099723dd34955f0fa0bf2979b92027ff231f00d8`
+SHA-256: `4f414fe0463d0d06b5be0a8f1424b9dad008e07a4ec1156fcb66fc2fbe9d68f8`

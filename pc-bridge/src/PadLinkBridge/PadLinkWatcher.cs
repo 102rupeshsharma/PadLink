@@ -19,11 +19,13 @@ public sealed class PadLinkWatcher : IDisposable
     private HidStream? _stream;
     private string? _path;
     private volatile bool _disposed;
+    private readonly EventHandler<DeviceListChangedEventArgs> _onChange;
 
     public PadLinkWatcher(BridgeEngine engine)
     {
         _engine = engine;
-        DeviceList.Local.Changed += (_, _) => Scan();
+        _onChange = (_, _) => Scan();
+        DeviceList.Local.Changed += _onChange;
         _rescan = new System.Threading.Timer(_ => Scan(), null, 0, 2000);
     }
 
@@ -50,6 +52,12 @@ public sealed class PadLinkWatcher : IDisposable
     }
 
     private void Scan()
+    {
+        // runs on a timer / device-change thread: an exception here would close the whole app
+        try { ScanOnce(); } catch { /* try again on the next scan */ }
+    }
+
+    private void ScanOnce()
     {
         if (_disposed) return;
         lock (_lock) { if (_stream != null) return; } // already reading PadLink
@@ -91,6 +99,7 @@ public sealed class PadLinkWatcher : IDisposable
     public void Dispose()
     {
         _disposed = true;
+        DeviceList.Local.Changed -= _onChange;
         _rescan.Dispose();
         lock (_lock) { try { _stream?.Dispose(); } catch { } }
     }

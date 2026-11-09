@@ -1,10 +1,10 @@
 # PadLink Bridge (Windows)
 
-Windows tray app that turns the PadLink phone controller (Bluetooth HID) into a virtual Xbox 360
+Windows on/off app that turns the PadLink phone controller (Bluetooth HID) into a virtual Xbox 360
 controller via ViGEmBus, so XInput-only PC games work. User guide: see the main [README](../README.md#-pc-games-and-ports-padlink-bridge).
 
 - `src/PadLinkBridge.Core`: report parsing, PadLink → Xbox mapping, device picking, bridge engine (no Windows APIs, fully tested)
-- `src/PadLinkBridge`: WinForms app: HID reading (HidSharp), ViGEm client, XInput check, HidHide, tray, setup window
+- `src/PadLinkBridge`: WinForms app: HID reading (HidSharp), ViGEm client, XInput check, status window with Start/Stop
 - `tests/PadLinkBridge.Tests`: xUnit tests
 
 ```
