@@ -119,6 +119,7 @@ class MainActivity : ComponentActivity() {
                         if (BluetoothPermissionHandler.hasScan(this)) onGranted()
                         else { afterScanPermission = onGranted; scanPermissionLauncher.launch(BluetoothPermissionHandler.scanPermissions()) }
                     },
+                    openBluetoothSettings = { safeLaunch { startActivity(android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)) } },
                 ),
             )
         }

@@ -63,10 +63,12 @@ sideways (landscape) by itself; when you leave the controller it turns back.
    on the laptop and **Pair** on the phone.
 6. The app shows **Connected ✓**. Done!
 
-> **Two or more laptops?** Tap **Choose another laptop / pair a new one** under the Connect button.
-> You get a list of your paired laptops with a **Connect** button on each, **Search for laptops** to find
-> and pair a new one from the phone, and **Make this phone visible** to pair from the laptop instead.
-> While you pick or pair another laptop, the phone no longer reconnects to the old one by itself.
+> **Two or more laptops?** Pair each one once. After that, just turn on Bluetooth on the laptop you
+> want and tap **Connect**: the phone tries the laptop used last, then your other laptops, until one
+> answers. To pick one yourself, tap **Choose another laptop / pair a new one** under the Connect button:
+> a list of your paired laptops with a **Connect** button on each, **Search for laptops** to find and pair
+> a new one from the phone, and **Make this phone visible** to pair from the laptop instead.
+> A laptop that **does not answer** (its pairing broke, e.g. it removed PadLink) gets a **Pair again** button.
 
 > **Used an older version before?** On the laptop, go to **Bluetooth & devices → PadLink** (or
 > "PS2 Gamepad") **→ ⋯ → Remove device**, then do Step 2 again. Needed only once.
@@ -265,7 +267,8 @@ many PS2 games do; some PC ports are single-player only, and no controller can c
 | **Buttons feel slow / laggy** | Update to **3.2.0** or newer (touches go straight to Bluetooth, buttons never wait behind stick movement). USB 3 ports and hubs right next to a Bluetooth dongle can disturb it: use a USB 2 port or a short extension cable for the dongle. |
 | **Settings: buttons don't react, can't scroll** | Update to **3.2.0** or newer (fixed). |
 | **Stopped working after switching apps** | Go back to PadLink: once you have tapped Connect, it reconnects by itself within a few seconds. Keep it open while playing. |
-| **It always connects to the same laptop / I can't see my other laptop** | Tap **Choose another laptop / pair a new one** on the start screen and tap **Connect** next to the laptop you want. A laptop that isn't in the list: tap **Search for laptops** (on the laptop, keep Settings → Bluetooth & devices → Add device open so it can be found), then **Pair & connect**. If pairing from the phone doesn't connect, use **Make this phone visible** and pair from the laptop instead. |
+| **It always connects to the same laptop / I can't see my other laptop** | Update to **3.6.1** or newer: **Connect** now tries the laptop used last, then every other paired laptop, until one answers (8 seconds each). Just switch on Bluetooth on the laptop you want and tap Connect. To pick one yourself: **Choose another laptop / pair a new one** → **Connect** next to it. A laptop that isn't in the list: **Search for laptops** (on the laptop keep Settings → Bluetooth & devices → Add device open), then **Pair & connect**. |
+| **"Cannot connect to RUPESH" / a laptop I used before never connects** | The pairing is broken on one side (usually the laptop removed PadLink, but the phone still remembers the laptop). In **Choose a laptop** tap **Connect** next to it: after 8 seconds the app shows **"… did not answer"**. On the laptop remove **PadLink** in Bluetooth & devices (if listed) and open **Add device**, then tap **Pair again** on the phone and confirm the code on both screens. If the phone says to do it in Bluetooth settings: tap ⚙ next to the laptop → Unpair, come back, **Search for laptops** → **Pair & connect**. |
 | **Search finds nothing** | Allow **Nearby devices** when asked. On Android 9-11 also turn on **Location** (Android needs it for Bluetooth search). Keep the laptop's **Add device** window open while searching. |
 | **Connect says "Waiting for the laptop…" for a long time** | Turn Bluetooth on on the laptop. If the laptop was never paired, add **PadLink** on the laptop (Step 2). After 20 seconds the button comes back so you can try again. |
 | **Gyro: small aim does nothing** | **Settings → Game dead-zone fix**: raise it a little. Camera creeps on its own? Lower it. |
@@ -294,7 +297,7 @@ many PS2 games do; some PC ports are single-player only, and no controller can c
 
 ---
 
-**Version 3.6.0** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 310 automated tests (307 passed,
+**Version 3.6.1** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 321 automated tests (318 passed,
 3 skipped). PC: 74 automated tests (all passed).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
@@ -442,12 +445,12 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.6.0, 2.6 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.6.1, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `1cb96dab0f312a7e58942cf4fb41928b99efebb201879dc3d7612eee9fd8955f`
+SHA-256: `e19869b827f655cdaa42f61d6d6b22ac991ca58fda03b4a0e24174664bc7f6f8`
 
 ### 💻 2. PC app: only for PC games and ports
 

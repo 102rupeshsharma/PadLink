@@ -312,6 +312,18 @@ XInput, player 1 = slot 1 with only A, player 2 = slot 2 with only B, both remov
 | M5 | PC fighting game, 2 players | Each phone controls its own player | ⏳ |
 | M6 | Phone 2 disconnects mid-fight | Player 2 stops, player 1 keeps playing | ⏳ |
 
+## 4.17 Connect to any laptop, Pair again (3.6.1) ⏳
+
+Automated (MOCK Bluetooth): ConnectAnyLaptopViewModelTest (9), ConnectAnyLaptopUiTest (2): all passed.
+
+| # | Test on real hardware | Expected | Result |
+|---|---|---|---|
+| L1 | Used laptop B last; only laptop A switched on; tap Connect | Tries B, after ~8 s connects to A | ⏳ |
+| L2 | Next Connect | A first | ⏳ |
+| L3 | Laptop A removed PadLink; Choose a laptop → Connect on A | "A did not answer" card after ~8 s | ⏳ |
+| L4 | Pair again (A in Add device) | Code on both screens, connects to A | ⏳ |
+| L5 | Phone blocks removing the pairing | Open Bluetooth settings card | ⏳ |
+
 ## 5. Final acceptance checklist
 
 | # | Criterion | Status |

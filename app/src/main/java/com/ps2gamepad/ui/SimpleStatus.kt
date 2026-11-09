@@ -33,6 +33,10 @@ fun simpleStatus(
     started: Boolean = true,
     /** Connect was tapped and the connection is not there yet. */
     connecting: Boolean = false,
+    /** The laptop being tried right now (Connect tries every paired laptop in turn). */
+    trying: HostDevice? = null,
+    /** How many OTHER paired laptops Connect tries when the first one does not answer. */
+    otherLaptops: Int = 0,
 ): SimpleStatus = when {
     bt == BluetoothState.UNAVAILABLE -> SimpleStatus(
         "This phone has no Bluetooth", "The app cannot work on this device.", Severity.BAD, SimpleAction.NONE_WAIT, "")
@@ -47,14 +51,20 @@ fun simpleStatus(
             "Connected to ${c.host.displayName} ✓", "You can play now. Keep this app open while playing.",
             Severity.GOOD, SimpleAction.OPEN_CONTROLLER, "Open Controller")
     }
-    connecting -> SimpleStatus(
-        if (knownPc != null) "Connecting to ${knownPc.displayName}…" else "Waiting for the laptop…",
-        if (knownPc != null) "Make sure Bluetooth is on on the laptop."
-        else "On the laptop: Settings → Bluetooth & devices → Add device → Bluetooth → choose \"$phoneName\".",
-        Severity.INFO, SimpleAction.NONE_WAIT, "")
+    connecting -> (trying ?: knownPc).let { pc ->
+        SimpleStatus(
+            if (pc != null) "Connecting to ${pc.displayName}…" else "Waiting for the laptop…",
+            when {
+                pc == null -> "On the laptop: Settings → Bluetooth & devices → Add device → Bluetooth → choose \"$phoneName\"."
+                otherLaptops > 0 -> "Make sure Bluetooth is on on the laptop. If it does not answer, your other laptops are tried next."
+                else -> "Make sure Bluetooth is on on the laptop."
+            },
+            Severity.INFO, SimpleAction.NONE_WAIT, "")
+    }
     !started && hid.registration !is RegistrationState.Failed -> SimpleStatus(
         "Not connected",
-        if (knownPc != null) "Turn on Bluetooth on ${knownPc.displayName}, then tap Connect. Another laptop? Tap \"Choose another laptop\"."
+        if (knownPc != null && otherLaptops > 0) "Tap Connect: it tries ${knownPc.displayName} first, then your other ${if (otherLaptops == 1) "laptop" else "$otherLaptops laptops"}. Bluetooth must be on on the laptop you want."
+        else if (knownPc != null) "Turn on Bluetooth on ${knownPc.displayName}, then tap Connect. Another laptop? Tap \"Choose another laptop\"."
         else "Tap Connect to choose your laptop or pair a new one.",
         Severity.WARN, SimpleAction.CONNECT, "Connect")
     hid.registration is RegistrationState.Failed -> SimpleStatus(

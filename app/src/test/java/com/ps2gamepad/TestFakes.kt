@@ -71,4 +71,13 @@ class FakeLaptopScanner : com.ps2gamepad.bluetooth.LaptopScanner {
     override fun pair(address: String, onResult: (Boolean) -> Unit): Boolean { pairRequests += address; waiting[address] = onResult; return true }
     /** The user confirmed (or refused) the pairing code. */
     fun finishPairing(address: String, ok: Boolean) { waiting.remove(address)?.invoke(ok) }
+
+    /** false = this phone blocks apps from removing a pairing (then the user does it in Settings). */
+    var canForget = true
+    val forgetRequests = mutableListOf<String>()
+    override fun forget(address: String, onResult: (Boolean) -> Unit): Boolean {
+        forgetRequests += address
+        if (!canForget) return false
+        onResult(true); return true
+    }
 }

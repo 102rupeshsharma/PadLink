@@ -31,6 +31,12 @@ interface LaptopScanner {
     fun stop()
     /** Pairs with [address] (already paired = immediately true). [onResult] runs on the main thread. */
     fun pair(address: String, onResult: (Boolean) -> Unit): Boolean
+    /**
+     * Removes the phone's own pairing with [address] (for a pairing that is broken on one side, e.g. the
+     * laptop removed the phone). False when this phone does not allow apps to do it: then the user
+     * forgets the laptop in Android's Bluetooth settings.
+     */
+    fun forget(address: String, onResult: (Boolean) -> Unit): Boolean = false
 }
 
 @SuppressLint("MissingPermission") // every call is guarded by try/catch SecurityException
@@ -43,6 +49,8 @@ class AndroidLaptopScanner(
     private val _scanning = MutableStateFlow(false)
     override val scanning: StateFlow<Boolean> = _scanning.asStateFlow()
     private val pending = HashMap<String, (Boolean) -> Unit>()
+    private val forgetting = HashMap<String, (Boolean) -> Unit>()
+    private val main = android.os.Handler(android.os.Looper.getMainLooper())
     private var registered = false
 
     private val receiver = object : BroadcastReceiver() {
@@ -67,6 +75,7 @@ class AndroidLaptopScanner(
                         state == BluetoothDevice.BOND_BONDED -> pending.remove(d.address)?.invoke(true)
                         state == BluetoothDevice.BOND_NONE && prev == BluetoothDevice.BOND_BONDING -> pending.remove(d.address)?.invoke(false)
                     }
+                    if (state == BluetoothDevice.BOND_NONE) forgetting.remove(d.address)?.invoke(true)
                 }
             }
         }
@@ -118,6 +127,29 @@ class AndroidLaptopScanner(
     } catch (e: SecurityException) {
         false
     } catch (e: IllegalArgumentException) {
+        false
+    }
+
+    override fun forget(address: String, onResult: (Boolean) -> Unit): Boolean = try {
+        val a = adapter() ?: return false
+        ensureRegistered()
+        a.cancelDiscovery()
+        val d = a.getRemoteDevice(address)
+        if (d.bondState == BluetoothDevice.BOND_NONE) {
+            onResult(true); true
+        } else {
+            forgetting[address] = onResult
+            // not in the public API; most phones still allow it, otherwise the user forgets it in Settings
+            val ok = d.javaClass.getMethod("removeBond").invoke(d) as? Boolean == true
+            if (!ok) forgetting.remove(address)
+            else main.postDelayed({
+                // no broadcast after 6 s: decide from the real bond state
+                forgetting.remove(address)?.invoke(try { d.bondState == BluetoothDevice.BOND_NONE } catch (_: SecurityException) { false })
+            }, 6_000)
+            ok
+        }
+    } catch (e: Exception) { // SecurityException, NoSuchMethodException (blocked on this phone), ...
+        forgetting.remove(address)
         false
     }
 }
