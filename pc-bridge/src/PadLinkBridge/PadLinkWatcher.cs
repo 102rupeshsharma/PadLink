@@ -1,36 +1,32 @@
 using HidSharp;
-using HidSharp.Reports;
 using PadLinkBridge.Core;
 
 namespace PadLinkBridge;
 
 /// <summary>
-/// Finds PadLink among the PC's HID devices and reads its reports on a background thread.
-/// Rescans when Windows reports a device change and every 2 s (Bluetooth devices do not always raise
-/// a change event). When the read fails (phone disconnected), the engine releases everything and the
-/// watcher looks for PadLink again.
+/// Finds every PadLink phone among the PC's HID devices and reads each one on its own background
+/// thread (two players = two threads, so one phone can never slow down the other). Rescans when
+/// Windows reports a device change and every 2 s (Bluetooth devices do not always raise a change
+/// event). When a phone's read fails (disconnected), only that player's controller is released and
+/// unplugged; the watcher keeps looking for it.
 /// </summary>
 public sealed class PadLinkWatcher : IDisposable
 {
     private const uint GamepadUsage = 0x00010005; // Generic Desktop / Game Pad
-    private readonly BridgeEngine _engine;
+    private readonly PadHub _hub;
     private readonly object _lock = new();
     private readonly System.Threading.Timer _rescan;
-    private HidStream? _stream;
-    private string? _path;
-    private volatile bool _disposed;
+    private readonly Dictionary<string, HidStream> _open = new();
     private readonly EventHandler<DeviceListChangedEventArgs> _onChange;
+    private volatile bool _disposed;
 
-    public PadLinkWatcher(BridgeEngine engine)
+    public PadLinkWatcher(PadHub hub)
     {
-        _engine = engine;
+        _hub = hub;
         _onChange = (_, _) => Scan();
         DeviceList.Local.Changed += _onChange;
         _rescan = new System.Threading.Timer(_ => Scan(), null, 0, 2000);
     }
-
-    /// <summary>Device path of the PadLink being read (for HidHide), null when none.</summary>
-    public string? CurrentPath { get { lock (_lock) return _path; } }
 
     /// <summary>All HID devices as the matcher sees them (also used by the self-test).</summary>
     public static List<HidCandidate> Candidates()
@@ -60,22 +56,33 @@ public sealed class PadLinkWatcher : IDisposable
     private void ScanOnce()
     {
         if (_disposed) return;
-        lock (_lock) { if (_stream != null) return; } // already reading PadLink
-        var pick = DeviceMatcher.Pick(Candidates());
-        if (pick == null) return;
-        var dev = DeviceList.Local.GetHidDevices().FirstOrDefault(d => d.DevicePath == pick.DevicePath);
-        if (dev == null || !dev.TryOpen(out HidStream s)) return;
-        lock (_lock)
+        var picks = DeviceMatcher.PickAll(Candidates());
+        lock (_lock) picks = picks.Where(p => !_open.ContainsKey(p.DevicePath)).ToList();
+        if (picks.Count == 0) return;
+
+        var devices = DeviceList.Local.GetHidDevices().ToList();
+        foreach (var pick in picks)
         {
-            if (_stream != null || _disposed) { s.Dispose(); return; }
-            _stream = s; _path = pick.DevicePath;
+            var dev = devices.FirstOrDefault(d => d.DevicePath == pick.DevicePath);
+            if (dev == null || !dev.TryOpen(out HidStream s)) continue;
+            lock (_lock)
+            {
+                if (_disposed || _open.ContainsKey(pick.DevicePath)) { s.Dispose(); continue; }
+                _open[pick.DevicePath] = s;
+            }
+            s.ReadTimeout = Timeout.Infinite;
+            if (!_hub.OnDeviceFound(pick.DevicePath, pick.ProductName ?? "PadLink"))
+            {
+                lock (_lock) _open.Remove(pick.DevicePath);
+                s.Dispose();
+                continue;
+            }
+            var path = pick.DevicePath;
+            new Thread(() => ReadLoop(path, s)) { IsBackground = true, Name = "padlink-read", Priority = ThreadPriority.AboveNormal }.Start();
         }
-        s.ReadTimeout = Timeout.Infinite;
-        _engine.OnPadLinkFound(pick.ProductName ?? "PadLink");
-        new Thread(() => ReadLoop(s)) { IsBackground = true, Name = "padlink-read", Priority = ThreadPriority.AboveNormal }.Start();
     }
 
-    private void ReadLoop(HidStream s)
+    private void ReadLoop(string path, HidStream s)
     {
         var buf = new byte[Math.Max(64, PadLinkReport.LengthWithId)];
         try
@@ -84,15 +91,15 @@ public sealed class PadLinkWatcher : IDisposable
             {
                 var n = s.Read(buf, 0, buf.Length);
                 if (n <= 0) break;
-                _engine.OnReport(buf.AsSpan(0, n)); // straight through: no queue, no delay
+                _hub.OnReport(path, buf.AsSpan(0, n)); // straight through: no queue, no delay
             }
         }
         catch { /* phone disconnected / Bluetooth off */ }
         finally
         {
-            lock (_lock) { if (ReferenceEquals(_stream, s)) { _stream = null; _path = null; } }
+            lock (_lock) { if (_open.TryGetValue(path, out var cur) && ReferenceEquals(cur, s)) _open.Remove(path); }
             try { s.Dispose(); } catch { }
-            _engine.OnPadLinkLost();
+            _hub.OnDeviceLost(path);
         }
     }
 
@@ -101,6 +108,10 @@ public sealed class PadLinkWatcher : IDisposable
         _disposed = true;
         DeviceList.Local.Changed -= _onChange;
         _rescan.Dispose();
-        lock (_lock) { try { _stream?.Dispose(); } catch { } }
+        lock (_lock)
+        {
+            foreach (var s in _open.Values) { try { s.Dispose(); } catch { } }
+            _open.Clear();
+        }
     }
 }

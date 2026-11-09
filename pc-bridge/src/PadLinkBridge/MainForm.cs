@@ -15,7 +15,7 @@ public sealed class MainForm : Form
     private readonly Button _startStop = new(), _test = new(), _installDriver = new(), _unhide = new();
     private readonly Panel _driverCard = new(), _hiddenCard = new();
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 150 };
-    private XboxModeState? _shownState;
+    private (XboxModeState, int)? _shown;
 
     private static readonly Color Bg = Color.FromArgb(18, 20, 26), Card = Color.FromArgb(30, 33, 42), Good = Color.FromArgb(52, 199, 89),
         Warn = Color.FromArgb(255, 176, 32), Off = Color.FromArgb(120, 126, 140), Txt = Color.FromArgb(235, 238, 245),
@@ -30,7 +30,7 @@ public sealed class MainForm : Form
         BackColor = Bg; ForeColor = Txt;
         Font = new Font("Segoe UI", 10f);
         FormBorderStyle = FormBorderStyle.FixedSingle; MaximizeBox = false;
-        ClientSize = new Size(520, 500);
+        ClientSize = new Size(520, 572);
         StartPosition = FormStartPosition.CenterScreen;
         Icon = App.MakeIcon(Accent);
 
@@ -38,28 +38,28 @@ public sealed class MainForm : Form
         Controls.Add(new Label { Text = "Xbox controller mode for PC games and ports", ForeColor = Dim, AutoSize = true, Location = new Point(22, 52) });
 
         // big status
-        _statusCard.SetBounds(20, 86, 480, 152); _statusCard.BackColor = Card;
+        _statusCard.SetBounds(20, 86, 480, 222); _statusCard.BackColor = Card;
         _dot.SetBounds(14, 18, 34, 36); _dot.Text = "●"; _dot.Font = new Font("Segoe UI", 16f); _dot.TextAlign = ContentAlignment.MiddleCenter;
         _title.SetBounds(46, 16, 420, 34); _title.Font = new Font("Segoe UI", 15f, FontStyle.Bold);
-        _detail.SetBounds(48, 54, 420, 68); _detail.ForeColor = Dim; _detail.Font = new Font("Segoe UI", 9.5f);
-        _live.SetBounds(48, 124, 420, 22); _live.ForeColor = Dim; _live.Font = new Font("Consolas", 9f);
+        _detail.SetBounds(48, 54, 424, 72); _detail.ForeColor = Dim; _detail.Font = new Font("Segoe UI", 9.5f);
+        _live.SetBounds(48, 132, 424, 82); _live.ForeColor = Txt; _live.Font = new Font("Consolas", 9f);
         _statusCard.Controls.AddRange([_dot, _title, _detail, _live]);
         Controls.Add(_statusCard);
 
-        Btn(_startStop, "", new Rectangle(20, 250, 360, 46), Accent, () => { StartStop(); return Task.CompletedTask; });
+        Btn(_startStop, "", new Rectangle(20, 320, 360, 46), Accent, () => { StartStop(); return Task.CompletedTask; });
         _startStop.Font = new Font("Segoe UI", 12f, FontStyle.Bold);
-        Btn(_test, "Test", new Rectangle(390, 250, 110, 46), Card, () => { RunTest(); return Task.CompletedTask; });
+        Btn(_test, "Test", new Rectangle(390, 320, 110, 46), Card, () => { RunTest(); return Task.CompletedTask; });
         Controls.AddRange([_startStop, _test]);
 
         // one-time setup, only shown while the driver is missing
-        _driverCard.SetBounds(20, 308, 480, 70); _driverCard.BackColor = Card;
+        _driverCard.SetBounds(20, 378, 480, 70); _driverCard.BackColor = Card;
         _driverText.SetBounds(14, 8, 320, 54); _driverText.Font = new Font("Segoe UI", 9.5f);
         Btn(_installDriver, "Install driver", new Rectangle(344, 17, 124, 36), Accent, InstallDriver);
         _driverCard.Controls.AddRange([_driverText, _installDriver]);
         Controls.Add(_driverCard);
 
         // only when an older version hid PadLink with HidHide: undo it, or the normal controller would not work
-        _hiddenCard.SetBounds(20, 308, 480, 70); _hiddenCard.BackColor = Card;
+        _hiddenCard.SetBounds(20, 378, 480, 70); _hiddenCard.BackColor = Card;
         _hiddenText.SetBounds(14, 8, 320, 54); _hiddenText.Font = new Font("Segoe UI", 9.5f); _hiddenText.ForeColor = Warn;
         _hiddenText.Text = "An older version hid PadLink from games. Click Show PadLink so it works as a normal controller again.";
         Btn(_unhide, "Show PadLink", new Rectangle(344, 17, 124, 36), Accent, Unhide);
@@ -71,8 +71,9 @@ public sealed class MainForm : Form
             Text = "How to use\n" +
                    "•  PC games / ports: open PadLink Bridge, then Connect on the phone.\n" +
                    "•  Done playing: close this window. Xbox mode stops.\n" +
-                   "•  PCSX2 / emulators: keep PadLink Bridge closed (normal controller).",
-            ForeColor = Dim, Font = new Font("Segoe UI", 9f), Location = new Point(20, 392), Size = new Size(480, 100),
+                   "•  PCSX2 / emulators: keep PadLink Bridge closed (normal controller).\n" +
+                   "•  Two players: connect both phones (second phone = P2 in the app).",
+            ForeColor = Dim, Font = new Font("Segoe UI", 9f), Location = new Point(20, 460), Size = new Size(480, 104),
         });
 
         _app.Mode.Changed += () => { try { BeginInvoke(Refresh2); } catch { /* window closing */ } };
@@ -99,18 +100,21 @@ public sealed class MainForm : Form
     {
         if (IsDisposed) return;
         var state = _app.Mode.State;
-        var engine = _app.Mode.Engine;
+        var players = _app.Mode.Hub?.Players ?? [];
 
-        if (state != _shownState)
+        if (_shown != (state, players.Count))
         {
-            _shownState = state;
+            _shown = (state, players.Count);
             var (color, title, detail, button, buttonColor) = state switch
             {
-                XboxModeState.On => (Good, "XBOX MODE ON",
-                    $"PC games now see an Xbox controller ({engine?.DeviceName ?? "PadLink"}). Start your game.\nDone playing? Close this window or click Stop.",
+                XboxModeState.On when players.Count == 1 => (Good, "XBOX MODE ON",
+                    "PC games now see an Xbox controller. Start your game.\nSecond player? Connect the other phone (P2 in the app).\nDone playing? Close this window or click Stop.",
+                    "■  Stop Xbox mode", Stop),
+                XboxModeState.On => (Good, $"XBOX MODE ON · {players.Count} PLAYERS",
+                    $"{players.Count} phones connected: games see {players.Count} Xbox controllers.\nStart your game.\nDone playing? Close this window or click Stop.",
                     "■  Stop Xbox mode", Stop),
                 XboxModeState.WaitingForPadLink => (Warn, "WAITING FOR PADLINK",
-                    "On the phone: open PadLink, tap Connect, then Open Controller.\nThe Xbox controller appears as soon as the phone connects.",
+                    "Phone: PadLink → Connect → Open Controller.\nThe Xbox controller appears when the phone connects.\nTwo players? Connect the second phone too (P2).",
                     "■  Stop Xbox mode", Stop),
                 XboxModeState.DriverMissing => (Warn, "DRIVER NEEDED",
                     "Xbox mode needs one free driver (ViGEmBus), installed once.\nClick Install driver below.",
@@ -122,10 +126,10 @@ public sealed class MainForm : Form
             _dot.ForeColor = color; _title.ForeColor = color; _title.Text = title; _detail.Text = detail;
             _startStop.Text = button; _startStop.BackColor = buttonColor;
             Icon = App.MakeIcon(color == Off ? Accent : color);
-            Text = state == XboxModeState.On ? "PadLink Bridge: Xbox mode ON" : "PadLink Bridge";
+            Text = state == XboxModeState.On ? $"PadLink Bridge: Xbox mode ON ({players.Count} player{(players.Count == 1 ? "" : "s")})" : "PadLink Bridge";
         }
 
-        _live.Text = state == XboxModeState.On && engine != null ? LiveText(engine.Current) : "";
+        _live.Text = state == XboxModeState.On ? string.Join("\n", players.Select(PlayerLine)) : "";
 
         var driverMissing = state == XboxModeState.DriverMissing;
         _driverCard.Visible = driverMissing;
@@ -135,10 +139,15 @@ public sealed class MainForm : Form
         _hiddenCard.Visible = !driverMissing && _app.Settings.HideOriginal && _app.Settings.HiddenInstanceId != null;
     }
 
-    private static string LiveText(XboxState s)
+    /// <summary>"P1 ● Xbox 1  Pressed: A, LB  LT RT  L 0,0  R 0,0" (one line per connected phone).</summary>
+    private static string PlayerLine(PlayerView p)
     {
-        var pressed = s.Buttons == XboxButtons.None ? "-" : s.Buttons.ToString().Replace("Shoulder", "B").Replace("Thumb", "S");
-        return $"Pressed: {pressed}   LT {s.LeftTrigger}  RT {s.RightTrigger}   L-stick {s.LeftX / 328},{s.LeftY / 328}   R-stick {s.RightX / 328},{s.RightY / 328}";
+        var s = p.Current;
+        var pressed = s.Buttons == XboxButtons.None ? "-" : s.Buttons.ToString().Replace("Shoulder", "B").Replace("Thumb", "S").Replace("Dpad", "");
+        if (s.LeftTrigger > 0) pressed += " LT";
+        if (s.RightTrigger > 0) pressed += " RT";
+        var slot = p.XboxSlot is int n ? $"Xbox {n}" : "Xbox";
+        return $"P{p.Player} ● {slot}  {pressed,-14} L {s.LeftX / 328},{s.LeftY / 328}  R {s.RightX / 328},{s.RightY / 328}";
     }
 
     private void StartStop()

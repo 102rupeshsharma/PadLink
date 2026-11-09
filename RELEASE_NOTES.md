@@ -1,5 +1,27 @@
 # Release notes
 
+## PadLink 3.6.0 (versionCode 22) + PadLink Bridge 1.2.0, 2026-11-09: two players on one PC
+
+- **Two (up to four) phones on one PC**, e.g. Mortal Kombat player 1 vs player 2, in PS2 emulators
+  (normal controls) and PC games (Xbox controls with PadLink Bridge). Requested by the user.
+- **Phone app 3.6.0: Player P1-P4** on the start screen. P1 keeps the old names ("PadLink" / "PadLink
+  Gamepad"), so a phone that is already paired keeps working. P2 is "PadLink P2" / "PadLink Gamepad P2",
+  so the PC, PCSX2 and the Bridge can tell the phones apart. The controller's top bar shows a **P1/P2
+  badge**. The player can only be changed while not connected; a started gamepad is stopped so the next
+  Connect registers under the new name.
+- **PadLink Bridge 1.2.0: one Xbox controller per phone.** Every PadLink phone is read on its own
+  thread and drives only its own Xbox controller; the player number comes from the phone's name.
+  One phone dropping out releases and unplugs only that player. The window shows one line per player
+  (`P1 ● Xbox 1 …`).
+- **Fix (Bridge): a crash (heap corruption) when an Xbox controller was freed twice.** Found by the new
+  two-controller self-test; freeing is now safe to repeat.
+- Tests: phone 13 new (player names, two phones playing at once, locked while connected, real-finger UI
+  on the start screen and controller); Bridge 20 new (a Mortal Kombat round with both players at the same
+  moment, 10 000 presses on two threads with no mix-up, P2 dropping out, P2 connecting first, max 4,
+  finding both phones among other devices). **Real PC with the real driver:** two Xbox controllers seen
+  by Windows, player 1 with only A, player 2 with only B, both removed on stop: passed 6 runs out of 6.
+  **Not yet checked:** two real phones on one PC, PCSX2 2-player and a PC fighting game.
+
 ## PadLink Bridge 1.1.0 (Windows PC app), 2026-11-09: a simple on/off app
 
 - **PadLink Bridge now works like a switch** (requested by the user): open it → Xbox mode (games see an

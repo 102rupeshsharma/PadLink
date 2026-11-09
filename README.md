@@ -18,6 +18,7 @@ Both downloads are at the [bottom of this page](#-download).
 - **Gyro aiming** for shooters: turn the phone to aim. Switch it with **Gyro ON/OFF** on the controller's top bar
 - **Pure black background**: on AMOLED phones black pixels are switched off, which saves battery
 - Move, resize and add buttons freely, with up to 5 **loadouts** (one per game)
+- **Two players**: two phones on one PC, e.g. Mortal Kombat player 1 vs player 2 ([guide](#-two-players-two-phones-one-pc))
 
 ## ⚡ In 30 seconds
 
@@ -200,6 +201,46 @@ PadLink Bridge does not start with Windows and does not run in the background: w
 closed, it is completely off. To remove it, delete the exe (the driver can stay; it does nothing on
 its own, or remove **ViGEmBus** in Windows Settings → Apps).
 
+## 👥 Two players (two phones, one PC)
+
+Two friends, two Android phones, one PC: for example **Mortal Kombat**, player 1 against player 2.
+Each phone is one controller. Works in **PS2 emulators** (normal controls) and in **PC games** (Xbox
+controls with PadLink Bridge). Up to 4 phones.
+
+**First time only:**
+
+1. Install **PadLink** on both phones ([Download](#-download)).
+2. **Phone 1:** leave it on **P1** (start screen → **Player**). Nothing changes for a phone you already
+   use: it stays "PadLink" on the PC.
+3. **Phone 2:** on the start screen tap **P2**. The phone is now called **"PadLink P2"**.
+4. Pair **both** phones with the PC (Step 2 above, once for each phone). The PC lists **PadLink** and
+   **PadLink P2**.
+
+> Changed a phone to P2 **after** it was paired? On the PC remove it (Bluetooth & devices → the phone →
+> Remove device) and pair it again, so Windows learns its new name.
+
+**Every time:** on each phone: **Connect** → **Open Controller**. The controller's top bar shows
+**P1** (blue) or **P2** (red), so nobody grabs the wrong phone.
+
+**PS2 games in PCSX2 (normal controls, PadLink Bridge closed):**
+
+1. PCSX2 → **Settings → Controllers**.
+2. **Controller Port 1** → bind the buttons with **phone 1** in your hand (or pick "PadLink Gamepad").
+3. **Controller Port 2** → set it to **DualShock 2** and bind it with **phone 2** in your hand
+   ("PadLink Gamepad P2").
+4. Start the game (e.g. Mortal Kombat) and choose 2 players / versus.
+
+**PC games and ports (Xbox controls):**
+
+1. Open **PadLink Bridge** on the PC.
+2. Connect both phones. The window shows **XBOX MODE ON · 2 PLAYERS** and one line per player:
+   `P1 ● Xbox 1 …` and `P2 ● Xbox 2 …`.
+3. Start the game. Player 1's phone is Xbox controller 1, player 2's phone is Xbox controller 2.
+   Tip: connect phone 1 first, so the numbers match.
+
+The game must support **2 players on one PC** (local versus / co-op / split screen). Fighting games and
+many PS2 games do; some PC ports are single-player only, and no controller can change that.
+
 ## 🛠️ Troubleshooting
 
 | Problem | Fix |
@@ -216,6 +257,10 @@ its own, or remove **ViGEmBus** in Windows Settings → Apps).
 | **Bridge: game reacts twice to one press / sees two controllers** | The game reads both PadLink and the Xbox controller. In the game's settings pick the **Xbox** controller, or turn off its "generic / DirectInput controller" support. |
 | **PCSX2 does not react after using the Bridge** | Close PadLink Bridge. If its window showed **Show PadLink**, open it once, click **Show PadLink**, then close it. |
 | **Bridge: game still sees nothing** | Start PadLink Bridge and connect PadLink **before** starting the game. Some games only look for controllers at start. |
+| **Two players: both phones show as "PadLink" on the PC** | The second phone must be **P2** (start screen → Player → P2). If it was paired before you changed it, remove it on the PC and pair it again. |
+| **Two players: P1 and P2 swapped in a PC game** | Connect phone 1 first, then phone 2 (Windows numbers Xbox controllers in the order they appear). Or pick the controllers in the game's settings. |
+| **Two players: the P buttons are greyed out** | You can only change the player while not connected. Close the controller, disconnect, then pick P1/P2. |
+| **Two players: second phone does nothing in PCSX2** | Set **Controller Port 2** to DualShock 2 and bind its buttons with the second phone in your hand. |
 | **Character keeps moving after I let go of the stick** | Update to **3.2.0** or newer (fixed: the app now sends stick movement at a rate the Bluetooth link can carry, and "stop" always goes first). If it still happens, move the phone closer to the laptop and turn off other Bluetooth devices you aren't using. |
 | **Buttons feel slow / laggy** | Update to **3.2.0** or newer (touches go straight to Bluetooth, buttons never wait behind stick movement). USB 3 ports and hubs right next to a Bluetooth dongle can disturb it: use a USB 2 port or a short extension cable for the dongle. |
 | **Settings: buttons don't react, can't scroll** | Update to **3.2.0** or newer (fixed). |
@@ -249,10 +294,14 @@ its own, or remove **ViGEmBus** in Windows Settings → Apps).
 
 ---
 
-**Version 3.5.0.** 297 automated tests (294 passed, 3 skipped).
+**Version 3.6.0** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 310 automated tests (307 passed,
+3 skipped). PC: 74 automated tests (all passed).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
-- Not yet confirmed on hardware: gyro aiming, button styles, combo buttons, loadouts and the battery saver.
+- PadLink Bridge on the developer's PC with the real driver and the phone: Xbox mode on/off, and two Xbox
+  controllers working side by side (player 1 and player 2 each with only their own button).
+- Not yet confirmed on hardware: two real phones at once, gyro aiming, button styles, combo buttons,
+  loadouts, the battery saver, and real PC games.
   See [TEST_REPORT.md](TEST_REPORT.md).
 
 ## 🎮 Works with emulators
@@ -384,6 +433,8 @@ Source layout: `bluetooth/` (HID layer), `controller/` (input manager, stick mat
 - On its own, Windows sees a generic (DirectInput) controller, not an Xbox (XInput) one. With
   **PadLink Bridge** running, games see an Xbox 360 controller. No vibration in either case.
 - Only one app on the phone can be a HID device at a time.
+- Two players need two phones (one PadLink per phone), up to 4 on one PC. A phone switched to another
+  player after pairing must be paired again so Windows shows its new name.
 
 ## 📥 Download
 
@@ -391,18 +442,18 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.5.0, 2.6 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.6.0, 2.6 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `e244c45e5c50aebb50f0ee634a37404a43c7d5bfcb7ec08fda1061ff9e813315`
+SHA-256: `1cb96dab0f312a7e58942cf4fb41928b99efebb201879dc3d7612eee9fd8955f`
 
 ### 💻 2. PC app: only for PC games and ports
 
-### **[⬇️ Download PadLink Bridge for Windows (v1.1.0, 52 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLinkBridge.exe)**
+### **[⬇️ Download PadLink Bridge for Windows (v1.2.0, 52 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLinkBridge.exe)**
 
 Click the link **on your Windows 10/11 PC** (64-bit). Not needed for PCSX2 or other emulators. Setup:
 [PC games and ports: PadLink Bridge](#-pc-games-and-ports-padlink-bridge).
 
-SHA-256: `4f414fe0463d0d06b5be0a8f1424b9dad008e07a4ec1156fcb66fc2fbe9d68f8`
+SHA-256: `a75350e120ed94aa21b73daa996e6c6294a866cca57c9cd493b65879ffb8de5b`

@@ -65,6 +65,8 @@ class MainViewModel(
     private val motionSource: com.ps2gamepad.motion.MotionSource? = null,
     /** Searches for and pairs laptops (null in tests that do not need it). */
     private val laptopScanner: com.ps2gamepad.bluetooth.LaptopScanner? = null,
+    /** Which player this phone is (two or more phones on one PC). */
+    private val playerPrefs: com.ps2gamepad.bluetooth.PlayerPrefs = com.ps2gamepad.bluetooth.InMemoryPlayerPrefs(),
 ) : ViewModel() {
 
     private val uptime = uptimeMs
@@ -321,9 +323,10 @@ class MainViewModel(
     fun applyPhoneName() {
         val c = phoneNameControl ?: return
         val before = c.current()
-        if (before != com.ps2gamepad.bluetooth.PhoneNameControl.GAMEPAD_NAME) {
-            val ok = c.applyGamepadName()
-            log.add(if (ok) "Phone Bluetooth name changed from \"$before\" to \"${com.ps2gamepad.bluetooth.PhoneNameControl.GAMEPAD_NAME}\""
+        val target = com.ps2gamepad.bluetooth.PlayerSlot.phoneName(_player.value)
+        if (before != target) {
+            val ok = c.applyGamepadName(target)
+            log.add(if (ok) "Phone Bluetooth name changed from \"$before\" to \"$target\""
                     else "Could not rename the phone (still \"$before\")")
         }
         _phoneName.value = c.current() ?: before
@@ -367,7 +370,33 @@ class MainViewModel(
     private var autoRegisterAttempts = 0
     private var previous: HidState = hid.state.value
 
+    private val _player = MutableStateFlow(com.ps2gamepad.bluetooth.PlayerSlot.clamp(playerPrefs.load()))
+    /** This phone's player number, 1-4 (player 1 uses the same names as before). */
+    val player: StateFlow<Int> = _player.asStateFlow()
+
+    /**
+     * Makes this phone player [n]: the PC then shows it as "PadLink P2" / "PadLink Gamepad P2".
+     * Only while not connected (the PC reads the names when it connects). A started gamepad is stopped,
+     * so the next Connect registers with the new name. Returns false when it was not changed.
+     */
+    fun setPlayer(n: Int): Boolean {
+        val p = com.ps2gamepad.bluetooth.PlayerSlot.clamp(n)
+        if (p == _player.value) return true
+        if (hidState.value.isConnected) { log.add("Disconnect first to change the player"); return false }
+        _player.value = p
+        playerPrefs.save(p)
+        hid.setControllerName(com.ps2gamepad.bluetooth.PlayerSlot.controllerName(p))
+        log.add("This phone is now player $p (\"${com.ps2gamepad.bluetooth.PlayerSlot.controllerName(p)}\")")
+        if (wantRegistered || hidState.value.registration != RegistrationState.NotRegistered) {
+            unregister() // registered under the old name: the next Connect registers again with the new one
+            _connectRequested.value = false
+        }
+        if (permission.value == PermissionState.GRANTED && bluetoothState.value == BluetoothState.ENABLED) applyPhoneName()
+        return true
+    }
+
     init {
+        hid.setControllerName(com.ps2gamepad.bluetooth.PlayerSlot.controllerName(_player.value))
         compatibility.forEach { log.add(it) }
         viewModelScope.launch { hid.state.collect(::onHidState) }
         viewModelScope.launch { bluetoothState.collect(::onBluetoothState) }

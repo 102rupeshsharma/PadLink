@@ -18,9 +18,12 @@ public sealed class ViGEmPad : IVirtualPad, IDisposable
     /// <summary>Throws <see cref="Nefarius.ViGEm.Client.Exceptions.VigemBusNotFoundException"/> without the driver.</summary>
     public ViGEmPad() => _client = new ViGEmClient();
 
+    /// <summary>The Xbox controller number Windows gave this controller (1-4).</summary>
+    public int? XboxSlot { get { try { return _pad == null ? null : _pad.UserIndex + 1; } catch { return null; } } }
+
     public void Connect()
     {
-        if (_pad != null) return;
+        if (_pad != null || Volatile.Read(ref _disposed) == 1) return;
         _pad = _client.CreateXbox360Controller();
         _pad.AutoSubmitReport = false;
         _pad.Connect();
@@ -51,7 +54,15 @@ public sealed class ViGEmPad : IVirtualPad, IDisposable
         _pad = null;
     }
 
-    public void Dispose() { Disconnect(); _client.Dispose(); }
+    private int _disposed;
+
+    /// <summary>Safe to call more than once: freeing the native ViGEm client twice corrupts the process heap.</summary>
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1) return;
+        Disconnect();
+        _client.Dispose();
+    }
 }
 
 /// <summary>Reads what Windows' own Xbox API (XInput) reports, to prove games see the virtual controller.</summary>

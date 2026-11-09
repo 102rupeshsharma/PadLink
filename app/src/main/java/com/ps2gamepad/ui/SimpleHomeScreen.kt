@@ -62,6 +62,7 @@ fun SimpleHomeScreen(vm: MainViewModel, actions: AppActions) {
     val store by vm.profiles.collectAsStateWithLifecycle() // ...or the last connection / theme changes
 
     val connecting by vm.connectRequested.collectAsStateWithLifecycle()
+    val player by vm.player.collectAsStateWithLifecycle()
     val phoneName = name ?: PhoneNameControl.GAMEPAD_NAME
     val st = simpleStatus(bt, perm, hid, vm.knownPc, phoneName, started = vm.started, connecting = connecting)
     BackHandler { actions.exit() }
@@ -149,6 +150,7 @@ fun SimpleHomeScreen(vm: MainViewModel, actions: AppActions) {
                     Text("Shown on your PC as", color = Palette.TextDim, fontSize = 12.sp)
                     Text("\"$phoneName\"", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
+                PlayerPicker(player, enabled = !hid.isConnected) { vm.setPlayer(it) }
             }
 
             // ------------------------------------------------ controller preview + tiles
@@ -177,6 +179,31 @@ fun SimpleHomeScreen(vm: MainViewModel, actions: AppActions) {
                 }
             }
         }
+    }
+}
+
+/** Two phones on one PC: each phone picks its player (P1 keeps the old names, P2 is "PadLink P2"). */
+@Composable
+private fun PlayerPicker(player: Int, enabled: Boolean, onPick: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.testTag("playerPicker")) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Player", color = Palette.TextDim, fontSize = 12.sp, modifier = Modifier.padding(end = 2.dp))
+            for (n in 1..com.ps2gamepad.bluetooth.PlayerSlot.MAX) {
+                val on = n == player
+                Text(
+                    "P$n", color = if (on) Color.White else Color(0xFFB7BCCB).copy(alpha = if (enabled) 1f else 0.5f),
+                    fontSize = 14.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
+                    modifier = Modifier.clip(RoundedCornerShape(50))
+                        .background(if (on) Color(0xFF4C6FFF) else Color(0x14FFFFFF))
+                        .clickable(enabled = enabled) { onPick(n) }
+                        .padding(horizontal = 14.dp, vertical = 7.dp).testTag("player_$n"),
+                )
+            }
+        }
+        Text(
+            if (enabled) "Two phones on one PC? Make the second phone P2." else "Disconnect to change the player.",
+            color = Palette.TextDim, fontSize = 11.sp, modifier = Modifier.testTag("playerHint"),
+        )
     }
 }
 

@@ -13,8 +13,8 @@ import androidx.core.content.edit
  */
 interface PhoneNameControl {
     fun current(): String?
-    /** Sets the gamepad name if it is not already set. Returns true when the name is (now) the gamepad name. */
-    fun applyGamepadName(): Boolean
+    /** Sets the gamepad [name] ("PadLink", or "PadLink P2" for player 2) if it is not already set. True when it is (now) set. */
+    fun applyGamepadName(name: String = GAMEPAD_NAME): Boolean
     /** Restores the name the phone had before; returns true on success. */
     fun restoreOriginal(): Boolean
     val originalName: String?
@@ -34,13 +34,13 @@ class AdapterPhoneName(context: Context, private val adapter: () -> BluetoothAda
 
     override fun current(): String? = try { adapter()?.name } catch (e: SecurityException) { null }
 
-    override fun applyGamepadName(): Boolean = try {
+    override fun applyGamepadName(name: String): Boolean = try {
         val a = adapter() ?: return false
         val now = a.name
-        if (now == PhoneNameControl.GAMEPAD_NAME) true
+        if (now == name) true
         else {
-            if (originalName == null && !now.isNullOrBlank() && now !in PhoneNameControl.LEGACY_NAMES) prefs.edit { putString(KEY_ORIGINAL, now) }
-            a.setName(PhoneNameControl.GAMEPAD_NAME)
+            if (originalName == null && !now.isNullOrBlank() && !PlayerSlot.isGamepadName(now)) prefs.edit { putString(KEY_ORIGINAL, now) }
+            a.setName(name)
         }
     } catch (e: SecurityException) { false }
 

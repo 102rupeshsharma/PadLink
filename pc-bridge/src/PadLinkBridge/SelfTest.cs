@@ -41,6 +41,46 @@ public static class SelfTest
         }
     }
 
+    /// <summary>
+    /// Two players: plugs two Xbox controllers through the real driver, holds A on the first and B on the
+    /// second, and checks that Windows (XInput) sees two new controllers, each with only its own button.
+    /// </summary>
+    public static Result TwoControllersCheck()
+    {
+        var pads = new List<ViGEmPad>();
+        try
+        {
+            var before = XInput.Connected().Select(c => c.Slot).ToHashSet();
+            var hub = new PadHub(() => { var p = new ViGEmPad(); pads.Add(p); return p; });
+            hub.OnDeviceFound("player1", "PadLink Gamepad");
+            hub.OnDeviceFound("player2", "PadLink Gamepad P2");
+            var a = new PadLinkReport(1 << ((int)PadLinkButton.Cross - 1), PadLinkReport.HatReleased, 0, 0, 0, 0).ToBytes();
+            var b = new PadLinkReport(1 << ((int)PadLinkButton.Circle - 1), PadLinkReport.HatReleased, 0, 0, 0, 0).ToBytes();
+            for (var i = 0; i < 40; i++)
+            {
+                hub.OnReport("player1", a);
+                hub.OnReport("player2", b);
+                Thread.Sleep(50);
+                var fresh = XInput.Connected().Where(c => !before.Contains(c.Slot)).ToList();
+                var withA = fresh.Where(c => (c.Pad.Buttons & (ushort)XboxButtons.A) != 0).ToList();
+                var withB = fresh.Where(c => (c.Pad.Buttons & (ushort)XboxButtons.B) != 0).ToList();
+                if (fresh.Count == 2 && withA.Count == 1 && withB.Count == 1 && withA[0].Slot != withB[0].Slot)
+                {
+                    hub.CloseAll();
+                    Thread.Sleep(300);
+                    var left = XInput.Connected().Count(c => !before.Contains(c.Slot));
+                    return left == 0
+                        ? new Result(true, $"2 Xbox controllers: player 1 = slot {withA[0].Slot + 1} with only A, player 2 = slot {withB[0].Slot + 1} with only B; both removed on stop.")
+                        : new Result(false, $"{left} controller(s) still there after stop.");
+                }
+            }
+            hub.CloseAll();
+            return new Result(false, "Windows did not show two separate controllers with their own buttons.");
+        }
+        catch (Exception e) { return new Result(false, e.Message); }
+        finally { foreach (var p in pads) { try { p.Dispose(); } catch { } } } // no-op for pads CloseAll already freed
+    }
+
     /// <summary><c>PadLinkBridge.exe --selftest out.txt</c>: a report of everything that can be checked without the phone.</summary>
     public static int RunToFile(string path)
     {
@@ -66,8 +106,10 @@ public static class SelfTest
         {
             var list = PadLinkWatcher.Candidates();
             Line(true, $"HID: listed {list.Count} devices");
-            var pick = DeviceMatcher.Pick(list);
-            Info(pick == null ? "HID: PadLink not connected right now" : $"HID: PadLink found: {pick.ProductName} ({pick.DevicePath})");
+            var picks = DeviceMatcher.PickAll(list);
+            if (picks.Count == 0) Info("HID: PadLink not connected right now");
+            foreach (var pick in picks)
+                Info($"HID: PadLink found: {pick.ProductName} → player {PadHub.PlayerFromName(pick.ProductName)?.ToString() ?? "?"} ({pick.DevicePath})");
             foreach (var c in list.Where(c => c.IsGamepad)) Info($"HID gamepad: {c.ProductName} VID {c.VendorId:X4} PID {c.ProductId:X4} report {c.MaxInputReportLength}");
         }
         catch (Exception e) { Line(false, "HID enumeration crashed: " + e.Message); }
@@ -80,6 +122,8 @@ public static class SelfTest
         {
             var r = VirtualControllerCheck();
             Line(r.Ok, "virtual Xbox controller seen by XInput: " + r.Message);
+            var two = TwoControllersCheck();
+            Line(two.Ok, "two players: " + two.Message);
         }
         else Info("virtual controller check skipped (needs ViGEmBus)");
 

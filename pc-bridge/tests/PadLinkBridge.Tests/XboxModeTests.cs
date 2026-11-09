@@ -3,47 +3,48 @@ using Xunit;
 
 namespace PadLinkBridge.Tests;
 
+/// <summary>The virtual Xbox controller, as games would see it.</summary>
+internal sealed class FakeXboxPad : IVirtualPad, IDisposable
+{
+    public bool PluggedIn, Disposed;
+    public XboxState Seen = XboxState.Neutral;
+    public int Plugs;
+    public void Connect() { if (Disposed) throw new ObjectDisposedException("pad"); PluggedIn = true; Plugs++; }
+    public void Submit(XboxState s) { if (Disposed) throw new ObjectDisposedException("pad"); Seen = s; }
+    public void Disconnect() => PluggedIn = false;
+    public void Dispose() => Disposed = true;
+}
+
+/// <summary>One phone, as the HID watcher would deliver it (device path + PC name).</summary>
+internal sealed class FakePhone(string id, string name)
+{
+    public PadHub? Hub;
+    public string Id => id;
+    public void Connect() => Hub?.OnDeviceFound(id, name);
+    public void Send(PadLinkReport r) => Hub?.OnReport(id, r.ToBytes());
+    public void Press(PadLinkButton b, sbyte lx = 0, sbyte ly = 0) =>
+        Send(new PadLinkReport(1 << ((int)b - 1), PadLinkReport.HatReleased, lx, ly, 0, 0));
+    public void Release() => Send(PadLinkReport.Neutral);
+    public void Disconnect() => Hub?.OnDeviceLost(id);
+}
+
 /// <summary>
 /// PadLink Bridge as an on/off app: open it → Xbox mode, close it → normal controller again.
 /// A fake driver (records what games would see) and a fake phone (sends PadLink reports).
 /// </summary>
 public class XboxModeTests
 {
-    /// <summary>The virtual Xbox controller, as games would see it.</summary>
-    private sealed class FakeXboxPad : IVirtualPad, IDisposable
-    {
-        public bool PluggedIn, Disposed;
-        public XboxState Seen = XboxState.Neutral;
-        public int Plugs;
-        public void Connect() { if (Disposed) throw new ObjectDisposedException("pad"); PluggedIn = true; Plugs++; }
-        public void Submit(XboxState s) { if (Disposed) throw new ObjectDisposedException("pad"); Seen = s; }
-        public void Disconnect() => PluggedIn = false;
-        public void Dispose() => Disposed = true;
-    }
-
-    /// <summary>The PadLink reader (the HID watcher in the app), driven by the test like a phone.</summary>
-    private sealed class FakePhone : IDisposable
-    {
-        public BridgeEngine? Engine;
-        public bool Reading;
-        public void Connect() => Engine?.OnPadLinkFound("PadLink Gamepad");
-        public void Press(PadLinkButton b, sbyte lx = 0, sbyte ly = 0) =>
-            Engine?.OnReport(new PadLinkReport(1 << ((int)b - 1), PadLinkReport.HatReleased, lx, ly, 0, 0).ToBytes());
-        public void Disconnect() => Engine?.OnPadLinkLost();
-        public void Dispose() => Reading = false;
-    }
-
     private readonly List<FakeXboxPad> _pads = new();
-    private readonly FakePhone _phone = new();
+    private readonly FakePhone _phone = new(@"\\?\hid#phone1", "PadLink Gamepad");
     private bool _driverInstalled = true;
+    private bool _reading;
 
     private XboxMode NewMode() => new(
-        createPad: () =>
-        {
-            if (!_driverInstalled) throw new InvalidOperationException("ViGEmBus not found");
-            var p = new FakeXboxPad(); _pads.Add(p); return p;
-        },
-        startReading: engine => { _phone.Engine = engine; _phone.Reading = true; return _phone; });
+        createPad: () => { var p = new FakeXboxPad(); _pads.Add(p); return p; },
+        startReading: hub => { _phone.Hub = hub; _reading = true; return new Stopper(() => _reading = false); },
+        driverInstalled: () => _driverInstalled);
+
+    private sealed class Stopper(Action a) : IDisposable { public void Dispose() => a(); }
 
     [Fact]
     public void BeforeOpeningTheAppNothingIsXbox()
@@ -57,29 +58,24 @@ public class XboxModeTests
     public void OpenPlayClose_TheWholeEvening()
     {
         var mode = NewMode();
-
-        // open PadLink Bridge
         Assert.True(mode.Start());
         Assert.Equal(XboxModeState.WaitingForPadLink, mode.State);
-        Assert.False(_pads[0].PluggedIn); // no Xbox controller until the phone is there
+        Assert.Empty(_pads); // no Xbox controller until a phone is there
 
-        // phone: Connect → Open Controller
         _phone.Connect();
         Assert.Equal(XboxModeState.On, mode.State);
         Assert.True(_pads[0].PluggedIn);
 
-        // play: run forward while attacking
-        _phone.Press(PadLinkButton.Square, lx: 0, ly: -127);
+        _phone.Press(PadLinkButton.Square, lx: 0, ly: -127); // run forward while attacking
         Assert.True(_pads[0].Seen.Has(XboxButtons.X));
         Assert.Equal(32767, _pads[0].Seen.LeftY);
 
-        // done playing: close the app in the middle of a press
-        mode.Stop();
+        mode.Stop(); // close the app in the middle of a press
         Assert.Equal(XboxModeState.Off, mode.State);
-        Assert.Equal(XboxState.Neutral, _pads[0].Seen); // released before unplugging: nothing stays held
+        Assert.Equal(XboxState.Neutral, _pads[0].Seen); // released before unplugging
         Assert.False(_pads[0].PluggedIn);
-        Assert.True(_pads[0].Disposed); // driver connection closed
-        Assert.False(_phone.Reading);   // the app stopped reading PadLink: it is a normal controller again
+        Assert.True(_pads[0].Disposed);
+        Assert.False(_reading); // PadLink is a normal controller again
     }
 
     [Fact]
@@ -87,15 +83,15 @@ public class XboxModeTests
     {
         var mode = NewMode();
         mode.Start();
-        var engine = mode.Engine!;
+        var hub = mode.Hub!;
         _phone.Connect();
         mode.Stop();
 
         // a late device scan or a report still in flight after Stop
-        engine.OnPadLinkFound("PadLink Gamepad");
-        engine.OnReport(new PadLinkReport(1, PadLinkReport.HatReleased, 0, 0, 0, 0).ToBytes());
+        Assert.False(hub.OnDeviceFound(@"\\?\hid#late", "PadLink Gamepad"));
+        hub.OnReport(_phone.Id, new PadLinkReport(1, PadLinkReport.HatReleased, 0, 0, 0, 0).ToBytes());
 
-        Assert.Equal(1, _pads[0].Plugs);
+        Assert.Single(_pads);
         Assert.False(_pads[0].PluggedIn);
         Assert.Equal(XboxModeState.Off, mode.State);
     }
@@ -132,7 +128,7 @@ public class XboxModeTests
 
         _phone.Connect();
         Assert.Equal(XboxModeState.On, mode.State);
-        Assert.True(_pads[0].PluggedIn);
+        Assert.True(_pads[1].PluggedIn);
     }
 
     [Fact]
@@ -147,12 +143,13 @@ public class XboxModeTests
     }
 
     [Fact]
-    public void StartingTwiceKeepsOneController()
+    public void StartingTwiceKeepsOneHub()
     {
         var mode = NewMode();
         mode.Start();
+        var hub = mode.Hub;
         mode.Start();
-        Assert.Single(_pads);
+        Assert.Same(hub, mode.Hub);
     }
 
     [Fact]
@@ -162,11 +159,19 @@ public class XboxModeTests
         var mode = NewMode();
         Assert.False(mode.Start());
         Assert.Equal(XboxModeState.DriverMissing, mode.State);
-        Assert.False(_phone.Reading);
+        Assert.False(_reading);
 
         _driverInstalled = true; // user clicked Install driver
         Assert.True(mode.Start());
         Assert.Equal(XboxModeState.WaitingForPadLink, mode.State);
+    }
+
+    [Fact]
+    public void WithoutADriverCheckThePadFactoryDecides()
+    {
+        var mode = new XboxMode(() => throw new InvalidOperationException("ViGEmBus not found"), _ => new Stopper(() => { }));
+        Assert.False(mode.Start());
+        Assert.Equal(XboxModeState.DriverMissing, mode.State);
     }
 
     [Fact]
@@ -175,9 +180,9 @@ public class XboxModeTests
         var mode = NewMode();
         var n = 0;
         mode.Changed += () => n++;
-        mode.Start();          // on
-        _phone.Connect();      // phone connected
-        mode.Stop();           // off (+ released)
+        mode.Start();
+        _phone.Connect();
+        mode.Stop();
         Assert.True(n >= 3);
     }
 
@@ -190,13 +195,13 @@ public class XboxModeTests
             var mode = NewMode();
             mode.Start();
             _phone.Connect();
-            var engine = mode.Engine!;
+            var hub = mode.Hub!;
             using var cts = new CancellationTokenSource();
             var masher = Task.Run(() =>
             {
                 var i = 0;
                 while (!cts.IsCancellationRequested)
-                    engine.OnReport(new PadLinkReport(1 << (i++ % 12), PadLinkReport.HatReleased, 127, 127, -127, -127).ToBytes());
+                    hub.OnReport(_phone.Id, new PadLinkReport(1 << (i++ % 12), PadLinkReport.HatReleased, 127, 127, -127, -127).ToBytes());
             });
             await Task.Delay(5);
             mode.Stop();

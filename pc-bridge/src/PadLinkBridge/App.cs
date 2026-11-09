@@ -23,8 +23,9 @@ public sealed class App : ApplicationContext
         try { Autostart.Enabled = false; } catch { }
 
         Mode = new XboxMode(
-            createPad: () => new ViGEmPad(), // throws without the driver → DriverMissing
-            startReading: engine => Watcher = new PadLinkWatcher(engine));
+            createPad: () => new ViGEmPad(),
+            startReading: hub => Watcher = new PadLinkWatcher(hub), // every phone → its own Xbox controller
+            driverInstalled: Drivers.ViGEmInstalled);
         _form = new MainForm(this);
         _form.FormClosed += (_, _) => { Mode.Stop(); ExitThread(); };
         MainForm = _form;
