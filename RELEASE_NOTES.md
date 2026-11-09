@@ -1,5 +1,18 @@
 # Release notes
 
+## PadLink 3.6.2 (versionCode 24), 2026-11-09: "Pair & connect" pairs a game controller, not a phone
+
+- **Fix: after "Pair & connect" the PC said "PadLink Connected" but the app said it could not connect**
+  (reported). "Pair & connect" paired first and started the gamepad only afterwards. Windows reads the
+  phone's services while pairing, so it saw a plain phone (no game controller) and never opened the
+  gamepad connection. Now the gamepad starts first (without connecting to any old laptop), and pairing
+  begins only once it is ready; if it cannot start, nothing is paired. "Make this phone visible" already
+  did it in this order.
+- A laptop paired the wrong way before (by 3.5.0-3.6.1 "Pair & connect") must be paired again once: on
+  the laptop remove PadLink, then on the phone Connect → "did not answer" → **Pair again**.
+- Tests: ChooseLaptopViewModelTest updated to the new order + 3 new (gamepad fails to start → no pairing;
+  never ready → stops waiting; already running → pairs at once); 1 UI test updated.
+
 ## PadLink 3.6.1 (versionCode 23), 2026-11-09: connect to any of your laptops
 
 - **Fix: back at the first laptop, the phone kept trying the other one** (reported: "I connected laptop A,
