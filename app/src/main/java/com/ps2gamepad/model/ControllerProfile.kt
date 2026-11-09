@@ -115,11 +115,16 @@ enum class ButtonStyle(val label: String, val hint: String) {
     REAL("Real", "3D buttons like a physical controller"),
     SIMPLE("Simple", "Flat dark buttons with a thin ring"),
     OUTLINE("Outline", "Rings only: the most battery-friendly"),
+    GLOSSY("Glossy", "Dark glossy buttons with a soft rim, like a modern console pad"),
 }
 
-/** Face button labels (top, right, bottom, left): PlayStation symbols or Xbox letters. */
+/**
+ * Face button labels (top, right, bottom, left): PlayStation symbols, Xbox letters or Nintendo letters
+ * (X on top, A right, B bottom, Y left, in white). Only the labels change: each position always sends
+ * the same HID button, so emulator bindings keep working.
+ */
 @Serializable
-enum class FaceLabels(val label: String) { PLAYSTATION("\u25B3 \u25CB \u2715 \u25A1"), XBOX("Y B A X") }
+enum class FaceLabels(val label: String) { PLAYSTATION("\u25B3 \u25CB \u2715 \u25A1"), XBOX("Y B A X"), NINTENDO("X A B Y") }
 
 /**
  * A control moved/resized by the user. Centre is a fraction of the screen (0..1) so layouts

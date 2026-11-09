@@ -50,6 +50,7 @@ class RealFingerSettingsTest {
             hid.emit(HidEvent.AppStatusChanged(true)); hid.emit(HidEvent.ConnectionChanged(HostDevice("1", "PC"), HidStateReducer.STATE_CONNECTED))
             vm.navigate(Screen.CONTROLLER)
         }
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Settings is in the menu
         rule.onNodeWithTag("chip_Settings").performClick()
         rule.waitForIdle()
     }

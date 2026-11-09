@@ -73,9 +73,13 @@ class ScreenshotCapture {
         shoot("07_loadouts")
         rule.runOnIdle { vm.playLoadout(com.ps2gamepad.settings.DefaultProfiles.STANDARD) }
         shoot("11_controller_real")
+        rule.onNodeWithTag("menuButton").performClick()
+        shoot("20_quick_menu")
+        rule.onNodeWithTag("menuClose").performClick()
         rule.runOnIdle { vm.setGyroEnabled(true) }
         shoot("11e_controller_gyro_on")
         rule.runOnIdle { vm.setGyroEnabled(false) }
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Settings is in the menu
         rule.onNodeWithTag("chip_Settings").performClick()
         shoot("08_controller_settings")
         rule.onNodeWithTag("chip_Close").performClick()
@@ -85,6 +89,14 @@ class ScreenshotCapture {
         shoot("11c_controller_simple")
         rule.runOnIdle { vm.updateAppearance { it.copy(buttonStyle = ButtonStyle.OUTLINE) } }
         shoot("11d_controller_outline")
+        rule.runOnIdle { vm.updateAppearance { it.copy(buttonStyle = ButtonStyle.GLOSSY, faceLabels = FaceLabels.PLAYSTATION) } }
+        shoot("11f_controller_glossy_playstation")
+        rule.runOnIdle { vm.updateAppearance { it.copy(faceLabels = FaceLabels.NINTENDO) } }
+        shoot("11g_controller_glossy_switch")
+        rule.onNodeWithTag("menuButton").performClick()
+        rule.onNodeWithTag("chip_Settings").performClick()
+        shoot("08b_settings_style_tiles")
+        rule.onNodeWithTag("chip_Close").performClick()
         rule.runOnIdle { vm.resetAppearance() }
         val combos = listOf(
             ExtraButton("c1", ControllerButton.CROSS, 0.5f, 0.2f, steps = listOf(ComboStep(setOf(ControllerButton.L1, ControllerButton.R1)))),

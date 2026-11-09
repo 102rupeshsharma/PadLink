@@ -106,7 +106,8 @@ fun DigitalButton(
     val skin = LocalSkin.current
     val neu = LocalNeu.current
     val faceColor = if (faceIndex >= 0) FaceColors.color(style.faceLabels, faceIndex) else null
-    // REAL keys stay neutral with a coloured symbol, like a physical pad; the other styles colour the ring
+    // REAL keys stay neutral with a coloured symbol, like a physical pad; GLOSSY uses the colour only as
+    // a glow while pressed; the other styles colour the ring
     val ringColor = accent ?: faceColor?.takeIf { style.buttonStyle != ButtonStyle.REAL }
     Box(
         modifier.inputIfInteractive(resetKey) { pointers, t ->
@@ -336,6 +337,13 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawNeuStick(
             drawCircle(neu.ring.copy(alpha = 0.55f), radius = wellR, center = c, style = Stroke(depth * 0.6f))
             neuPath(circlePath(k, kr), neu, pressed = held, depth = depth, style = ButtonStyle.OUTLINE)
         }
+        ButtonStyle.GLOSSY -> {
+            // dark well with a soft rim, glossy knob
+            drawCircle(Brush.radialGradient(listOf(Color(0xFF0A0B0D), Color(0xFF1B1D22)), center = c, radius = wellR), radius = wellR, center = c)
+            drawCircle(Color(0xFF6B707B).copy(alpha = 0.55f), radius = wellR, center = c, style = Stroke(depth * 0.45f))
+            neuPath(circlePath(k, kr), neu, pressed = held, depth = depth, style = ButtonStyle.GLOSSY)
+            drawCircle(Color.Black.copy(alpha = 0.35f), radius = kr * 0.62f, center = k, style = Stroke(s * 0.008f))
+        }
     }
     if (deadZone > 0f && style != ButtonStyle.OUTLINE) {
         drawCircle(neu.labelDim.copy(alpha = 0.25f), radius = travel * deadZone, center = c, style = Stroke(s * 0.006f))
@@ -414,7 +422,7 @@ fun ComboButton(
             neuPath(roundRectPath(Offset(inset, inset), sz, sz.height * 0.3f), neu, pressed || playing, d, accent = COMBO_COLOR, style = style.buttonStyle)
         }
         if (style.showLabels) {
-            Text(label, color = if (style.buttonStyle == ButtonStyle.REAL) COMBO_COLOR else neu.label, fontSize = fontSize,
+            Text(label, color = if (style.buttonStyle == ButtonStyle.REAL || style.buttonStyle == ButtonStyle.GLOSSY) COMBO_COLOR else neu.label, fontSize = fontSize,
                 fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }

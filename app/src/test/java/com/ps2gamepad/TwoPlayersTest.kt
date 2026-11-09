@@ -210,7 +210,7 @@ class TwoPlayersUiTest {
     @Test fun theControllerShowsWhichPlayerThisPhoneIs() {
         rule.onNodeWithTag("player_2").performScrollTo().performClick()
         rule.runOnIdle { vm.navigate(Screen.CONTROLLER) }
-        rule.onNodeWithTag("playerBadge").assertIsDisplayed()
+        rule.onNodeWithTag("playerBadge", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("P2").assertIsDisplayed()
     }
 }

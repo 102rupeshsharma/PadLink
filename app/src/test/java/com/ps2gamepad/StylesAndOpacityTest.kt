@@ -84,6 +84,7 @@ class ControllerSettingsUiTest {
     }
 
     @Test fun settingsPanelChangesOpacityAndSizeLive() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Settings is in the menu
         rule.onNodeWithTag("chip_Settings").performClick()
         rule.onNodeWithTag("controllerSettings").assertIsDisplayed()
         rule.onNodeWithTag("set_opacity").performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(0.5f) }
@@ -99,6 +100,7 @@ class ControllerSettingsUiTest {
     }
 
     @Test fun buttonStyleAndFaceLabelsAreChosenInSettingsAndSaved() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Settings is in the menu
         rule.onNodeWithTag("chip_Settings").performClick()
         for (st in com.ps2gamepad.model.ButtonStyle.entries) {
             rule.onNodeWithTag("style_${st.name}").performScrollTo().performClick()
@@ -107,7 +109,7 @@ class ControllerSettingsUiTest {
         rule.onNodeWithTag("faces_PLAYSTATION").performScrollTo().performClick()
         rule.runOnIdle { assertEquals(com.ps2gamepad.model.FaceLabels.PLAYSTATION, vm.activeProfile.value.appearance.faceLabels) }
         val back = ProfileCodec.decode(ProfileCodec.encode(vm.profiles.value)).active.appearance
-        assertEquals(com.ps2gamepad.model.ButtonStyle.OUTLINE, back.buttonStyle)
+        assertEquals("the last style tapped is saved", com.ps2gamepad.model.ButtonStyle.entries.last(), back.buttonStyle)
         assertEquals(com.ps2gamepad.model.FaceLabels.PLAYSTATION, back.faceLabels)
     }
 
@@ -138,6 +140,7 @@ class ControllerSettingsUiTest {
     }
 
     @Test fun touchesOnThePanelNeverPressControlsBehindIt() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Settings is in the menu
         rule.onNodeWithTag("chip_Settings").performClick()
         val before = hid.sent.size
         rule.onNodeWithTag("controllerSettings").performTouchInput { down(center); up() }

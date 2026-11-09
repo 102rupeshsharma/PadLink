@@ -84,6 +84,7 @@ class ExtraButtonUiTest {
     }
 
     @Test fun addMapSaveAndPressAnExtraButton() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Edit is in the menu
         rule.onNodeWithTag("chip_Edit").performClick()
         rule.onNodeWithTag("chip_+ Button").performClick()
         rule.onNodeWithTag("extraEditor").assertIsDisplayed()
@@ -106,6 +107,7 @@ class ExtraButtonUiTest {
 
     @Test fun deletedExtraButtonIsGoneAfterSave() {
         rule.runOnIdle { vm.saveLayout(emptyMap(), listOf(ExtraButton("x1", ControllerButton.L1))) }
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Edit is in the menu
         rule.onNodeWithTag("chip_Edit").performClick()
         rule.onNodeWithTag("editx_x1").performClick()
         rule.onNodeWithTag("extra_delete").performClick()

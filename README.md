@@ -12,10 +12,12 @@ sees a normal game controller, so PCSX2 and other emulators can use it.
 
 Both downloads are at the [bottom of this page](#-download).
 
-- Buttons in **3 styles**: **Real** (3D like a physical pad), **Simple** (flat) or **Outline** (rings only)
-- Face buttons labelled **Y B A X** or **△ ○ ✕ □**
+- Buttons in **4 styles**: **Real** (3D like a physical pad), **Simple** (flat), **Outline** (rings only) or
+  **Glossy** (dark glossy console look), picked from live preview tiles
+- Face buttons labelled **△ ○ ✕ □** (PS4 / PS5), **Y B A X** (Xbox) or **X A B Y** (Switch / 3DS)
+- A clean screen while playing: **one ☰ button** on top opens Home, connection, Live, Edit, Settings and Gyro
 - **Combo buttons**: press several buttons together (e.g. L1+R1), or play a sequence (e.g. ↓ ↘ → + X)
-- **Gyro aiming** for shooters: turn the phone to aim. Switch it with **Gyro ON/OFF** on the controller's top bar
+- **Gyro aiming** for shooters: turn the phone to aim. Switch it with **Gyro ON/OFF** in the controller's ☰ menu
 - **Pure black background**: on AMOLED phones black pixels are switched off, which saves battery
 - Move, resize and add buttons freely, with up to 5 **loadouts** (one per game)
 - **Two players**: two phones on one PC, e.g. Mortal Kombat player 1 vs player 2 ([guide](#-two-players-two-phones-one-pc))
@@ -99,16 +101,19 @@ Every next time: turn on Bluetooth on both devices → open **PadLink** → tap 
 to the laptop you used last) → when it says **Connected ✓**, tap **Open Controller** → pick your loadout → play. **Keep the app open while you play** (Android stops
 Bluetooth controllers that run in the background).
 
-The bar at the top of the controller:
+While playing, only **one button** sits at the top: **● P1 ☰**. The dot is green when inputs reach the PC
+(red = not connected), and **P1/P2** shows which player this phone is. Tap it to open the menu:
 
-| Button | What it does |
+| In the ☰ menu | What it does |
 |---|---|
+| **Connected: <laptop>** | Which laptop the controller is connected to, and your player number |
 | **Home** | Back to the start screen |
-| 🟢 **Connected** | Green = inputs reach the PC. Red banner = not connected |
 | **Live** | Shows exactly what is being sent (for checking buttons) |
 | **Edit** | Move, resize and add buttons and combos |
 | **Settings** | Button style, face labels, gyro options, battery saver, size and opacity |
-| **Gyro ON / OFF** | Aim by turning the phone (blue = on) |
+| **Gyro ON / OFF** | Aim by turning the phone (blue = on). The menu stays open so you can see it switch |
+
+Tap outside the menu (or ✕) to close it. While the menu is open nothing on the controller can be pressed.
 
 Press **Back twice** to leave the controller (one press only shows a hint, so you can't leave by accident).
 
@@ -117,12 +122,13 @@ Press **Back twice** to leave the controller (one press only shows a hint, so yo
 - Keep the phone within about 2 metres of the laptop, with nothing metal in between.
 - Your phone's normal brightness slider works while playing. Lower brightness saves battery.
 
-**Settings** (tap **Settings** on the top bar; changes apply at once and are saved to the loadout in use):
+**Settings** (☰ → **Settings**; every choice is a preview tile, the controller behind changes at once, and it
+is saved to the loadout in use):
 
 | Setting | What it does |
 |---|---|
-| **Button style** | **Real** (3D), **Simple** (flat) or **Outline** (rings only, uses the least battery) |
-| **Face buttons** | Show **Y B A X** or **△ ○ ✕ □**. Only the labels change; your emulator bindings stay |
+| **Button style** | **Real** (3D), **Simple** (flat), **Outline** (rings only, uses the least battery) or **Glossy** (dark glossy console look) |
+| **Face buttons** | **PS4 / PS5** (△ ○ ✕ □ in colour), **Xbox** (Y B A X) or **Switch / 3DS** (X A B Y in white). Only the labels change: every position sends the same signal, so your emulator bindings stay |
 | **Gyro sensitivity** | How much the camera turns when you turn the phone |
 | **Game dead-zone fix** | Raise it if small gyro movements do nothing; lower it if the camera creeps by itself |
 | **Up/down speed**, **Invert** | Gyro up/down speed, and flipping the gyro directions |
@@ -221,8 +227,8 @@ controls with PadLink Bridge). Up to 4 phones.
 > Changed a phone to P2 **after** it was paired? On the PC remove it (Bluetooth & devices → the phone →
 > Remove device) and pair it again, so Windows learns its new name.
 
-**Every time:** on each phone: **Connect** → **Open Controller**. The controller's top bar shows
-**P1** (blue) or **P2** (red), so nobody grabs the wrong phone.
+**Every time:** on each phone: **Connect** → **Open Controller**. The ☰ button on top of the controller
+shows **P1** (blue) or **P2** (red), so nobody grabs the wrong phone.
 
 **PS2 games in PCSX2 (normal controls, PadLink Bridge closed):**
 
@@ -293,13 +299,15 @@ many PS2 games do; some PC ports are single-player only, and no controller can c
 | ![Combos](docs/screenshots/19_controller_combos.png) | ![Combo editor](docs/screenshots/12_edit_combo.png) |
 | **Settings inside the controller** | **Loadouts (one per game)** |
 | ![Settings](docs/screenshots/08_controller_settings.png) | ![Loadouts](docs/screenshots/07_loadouts.png) |
-| **Gyro ON (top bar)** | |
-| ![Gyro on](docs/screenshots/11e_controller_gyro_on.png) | |
+| **Glossy buttons, PS4 / PS5 labels** | **Glossy buttons, Switch / 3DS labels** |
+| ![Glossy PlayStation](docs/screenshots/11f_controller_glossy_playstation.png) | ![Glossy Switch](docs/screenshots/11g_controller_glossy_switch.png) |
+| **The ☰ menu while playing** | **Style tiles in Settings (live preview)** |
+| ![Menu](docs/screenshots/20_quick_menu.png) | ![Style tiles](docs/screenshots/08b_settings_style_tiles.png) |
 
 ---
 
-**Version 3.6.2** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 324 automated tests (321 passed,
-3 skipped). PC: 74 automated tests (all passed).
+**Version 3.7.0** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 334 automated tests (333 passed,
+1 skipped). PC: 74 automated tests (all passed).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
 - PadLink Bridge on the developer's PC with the real driver and the phone: Xbox mode on/off, and two Xbox
@@ -322,7 +330,7 @@ two analog sticks. Bind it once in the emulator's controller settings:
 
 ## 🎯 Gyro aiming
 
-Tap **Gyro OFF** on the controller's top bar to turn it **ON** (blue). Then turn the phone to aim:
+Tap **☰** on top of the controller, then **Gyro OFF** to turn it **ON** (blue). Then turn the phone to aim:
 
 - **How fast you turn the phone = how fast the camera turns.** Turn slowly for small corrections,
   turn quickly for big turns. Stop turning and the camera stops at once. You don't need to hold the
@@ -396,7 +404,7 @@ In the controller tap **Edit → + Combo**, then choose what the combo presses:
 - **Layout editor:** drag any control, resize it with the blue corner handle, overlap allowed,
   extra buttons (a second Cross, for example) and combos. Layouts adapt to any screen size.
 - **Gyro aiming (right stick):** rotation speed to stick, game dead-zone fix, tiered smoothing (no
-  lag on real turns), automatic drift learning, 200 Hz gyroscope, on/off on the top bar.
+  lag on real turns), automatic drift learning, 200 Hz gyroscope, on/off in the ☰ menu.
 - **Settings inside the controller:** button style, face labels, gyro aim, battery saver, opacity
   of all controls, button size, joystick size.
 - **Customization:** opacity of each control, face-button spacing, labels, haptics.
@@ -446,12 +454,12 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.6.2, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.7.0, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `2e92c9b332e300cb497e8c0a03c8deb15f8abf1d71e970a98cfa74250fe7028a`
+SHA-256: `3ab97b2529e39d62ee0e3ed49fef10836061f6e16fd7b360203baf4bde27bee5`
 
 ### 💻 2. PC app: only for PC games and ports
 

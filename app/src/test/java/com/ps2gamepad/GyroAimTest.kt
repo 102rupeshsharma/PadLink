@@ -264,6 +264,7 @@ class GyroChipUiTest {
     }
 
     @Test fun gyroChipTurnsGyroAimOnAndOff() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Gyro ON/OFF is in the menu (it stays open)
         rule.onNodeWithTag("chip_gyro").assertTextEquals("Gyro OFF")
         assertTrue(!motion.running)
         rule.onNodeWithTag("chip_gyro").performClick()

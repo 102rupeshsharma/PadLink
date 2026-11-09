@@ -86,6 +86,7 @@ class FaceButtonsAndThemeUiTest {
     private fun bounds(tag: String) = rule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
 
     @Test fun cornerHandleResizesTheSelectedControl() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Edit is in the menu
         rule.onNodeWithTag("chip_Edit").performClick()
         rule.onNodeWithTag("edit_L1").performClick()
         val before = bounds("edit_L1").width
@@ -95,6 +96,7 @@ class FaceButtonsAndThemeUiTest {
     }
 
     @Test fun addedButtonCanBeDeletedWithTheRedX() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Edit is in the menu
         rule.onNodeWithTag("chip_Edit").performClick()
         rule.onNodeWithTag("chip_+ Button").performClick()
         rule.onNodeWithTag("extraDeleteX").performClick()
@@ -104,6 +106,7 @@ class FaceButtonsAndThemeUiTest {
     }
 
     @Test fun dragTriangleAloneThenItStillPressesTriangle() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Edit is in the menu
         rule.onNodeWithTag("chip_Edit").performClick()
         val t0 = bounds("edit_TRIANGLE"); val c0 = bounds("edit_CIRCLE")
         rule.onNodeWithTag("edit_TRIANGLE").performTouchInput { down(center); moveBy(Offset(-25f, 0f)); moveBy(Offset(-25f, 0f)); up() }
