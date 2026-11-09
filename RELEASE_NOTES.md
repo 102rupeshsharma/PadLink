@@ -1,5 +1,23 @@
 # Release notes
 
+## PadLink 3.7.0 (versionCode 25), 2026-11-09: Glossy buttons, Switch / 3DS labels, one-button top bar
+
+- **New button style: Glossy** (requested, after pictures of PS4/PS5 and Switch/3DS style buttons): dark
+  glossy body with a soft grey rim and a sheen on top; the symbol carries the colour; pressed = darker body
+  with a glow in the button's colour. Sticks and D-pad match.
+- **New face labels: Switch / 3DS** (X on top, A right, B bottom, Y left, in white). Only the labels change:
+  each position still sends the same HID button, so emulator bindings stay.
+- **Settings: preview tiles** instead of text chips. Each tile draws the real button in that style (and the
+  four face buttons for each label set); the controller behind changes live.
+- **One button on top while playing.** The row of Home / connection / P1 / Live / Edit / Settings / Gyro chips
+  is replaced by one glossy **● P1 ☰** button (green/red dot = connected or not, player number stays visible
+  for two-player games). It opens a premium menu: "Connected: <laptop>", Player, and tiles for Home, Live,
+  Edit, Settings and Gyro ON/OFF. Tap outside or ✕ to close; nothing behind it can be pressed while it is
+  open; opening it releases any held button. Every action does exactly what the old chip did.
+- Tests: NewStylesModelTest (3), ControllerMenuUiTest (7: only one button on top, menu content, every tile,
+  tapping outside presses nothing, held buttons released, Glossy + Switch labels from the tiles still send
+  Triangle = button 4, every style x label set draws). Existing tests now open the menu first, as a user does.
+
 ## PadLink 3.6.2 (versionCode 24), 2026-11-09: "Pair & connect" pairs a game controller, not a phone
 
 - **Fix: after "Pair & connect" the PC said "PadLink Connected" but the app said it could not connect**

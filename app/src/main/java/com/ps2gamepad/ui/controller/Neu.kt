@@ -55,11 +55,17 @@ object NeuThemes {
 object FaceColors {
     private val XBOX = listOf(Color(0xFFE9D44C), Color(0xFFE5484D), Color(0xFF6CC24A), Color(0xFF4DA3E8)) // Y B A X
     private val PLAYSTATION = listOf(Color(0xFF3FD18B), Color(0xFFFF5A5F), Color(0xFF7FB2FF), Color(0xFFF08CD0)) // triangle circle cross square
+    private val NINTENDO = List(4) { Color(0xFFF2F4F8) } // white letters, like the handhelds
     private val LETTERS = listOf("Y", "B", "A", "X")
+    private val NINTENDO_LETTERS = listOf("X", "A", "B", "Y")
     private val SYMBOLS = listOf("△", "○", "✕", "□")
 
-    fun color(labels: FaceLabels, i: Int): Color = (if (labels == FaceLabels.XBOX) XBOX else PLAYSTATION)[i]
-    fun text(labels: FaceLabels, i: Int): String = (if (labels == FaceLabels.XBOX) LETTERS else SYMBOLS)[i]
+    fun color(labels: FaceLabels, i: Int): Color = when (labels) {
+        FaceLabels.XBOX -> XBOX; FaceLabels.PLAYSTATION -> PLAYSTATION; FaceLabels.NINTENDO -> NINTENDO
+    }[i]
+    fun text(labels: FaceLabels, i: Int): String = when (labels) {
+        FaceLabels.XBOX -> LETTERS; FaceLabels.PLAYSTATION -> SYMBOLS; FaceLabels.NINTENDO -> NINTENDO_LETTERS
+    }[i]
 }
 
 val LocalNeu = staticCompositionLocalOf { NeuThemes.BLACK }
@@ -73,6 +79,8 @@ fun neuDepth(size: Size) = (size.minDimension * 0.05f).coerceIn(2f, 8f)
  *    keys flip the light and sink a little, like a real button travelling down.
  *  - SIMPLE: flat dark fill with a thin ring; pressed = lighter fill + bright ring.
  *  - OUTLINE: ring only (nothing else lights up); pressed = faint fill.
+ *  - GLOSSY: dark glossy body with a soft grey rim and a light sheen on top, like a modern console
+ *    pad; the symbol carries the colour. Pressed = darker body with a glow in the button's colour.
  * [accent] (face buttons) colours the ring in SIMPLE/OUTLINE; REAL keeps neutral keys with
  * coloured symbols, like a real pad.
  */
@@ -119,7 +127,30 @@ fun DrawScope.neuPath(
             val ring = accent ?: if (pressed) t.pressedRing else t.ring.copy(alpha = 0.75f)
             drawPath(path, ring, style = Stroke(width = if (pressed) ringW * 1.5f else ringW))
         }
+        ButtonStyle.GLOSSY -> drawGlossy(path, pressed, ringW, glow = accent)
     }
+}
+
+/** GLOSSY: charcoal body lit from the top centre, soft grey rim, sheen on the upper half. */
+private fun DrawScope.drawGlossy(path: Path, pressed: Boolean, ringW: Float, glow: Color?) {
+    val b = path.getBounds()
+    val light = Offset(b.center.x, b.top + b.height * 0.32f)
+    val radius = maxOf(b.width, b.height) * 0.75f
+    // soft shadow under the button
+    if (!pressed) translate(0f, ringW * 0.9f) { drawPath(path, Color.Black.copy(alpha = 0.55f)) }
+    // body
+    val (inner, outer) = if (pressed) Color(0xFF15171B) to Color(0xFF0B0C0E) else Color(0xFF34373E) to Color(0xFF16181C)
+    drawPath(path, Brush.radialGradient(listOf(inner, outer), center = light, radius = radius))
+    if (pressed && glow != null) drawPath(path, Brush.radialGradient(listOf(glow.copy(alpha = 0.35f), Color.Transparent), center = b.center, radius = radius * 0.8f))
+    // sheen on the upper half
+    if (!pressed) drawPath(path, Brush.verticalGradient(
+        listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.03f), Color.Transparent),
+        startY = b.top, endY = b.top + b.height * 0.6f,
+    ))
+    // rim: dark outer edge, soft grey ring (tinted by the glow while pressed)
+    drawPath(path, Color.Black.copy(alpha = 0.85f), style = Stroke(width = ringW * 1.6f))
+    val rim = if (pressed) (glow ?: Color.White).copy(alpha = 0.85f) else Color(0xFF6B707B)
+    drawPath(path, rim, style = Stroke(width = ringW * 0.75f))
 }
 
 fun circlePath(center: Offset, radius: Float) = Path().apply {

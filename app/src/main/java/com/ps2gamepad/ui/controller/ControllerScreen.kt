@@ -127,6 +127,7 @@ fun ControllerScreen(vm: MainViewModel) {
     val neu = NeuThemes.BLACK
     var showOverlay by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
 
     // Back: press twice within 2 s to leave, so a stray edge swipe cannot end a game session.
     var lastBack by remember { mutableLongStateOf(0L) }
@@ -151,23 +152,15 @@ fun ControllerScreen(vm: MainViewModel) {
         val rects = remember(w, h, profile.appearance, profile.placements) { LayoutEngine.resolve(w, h, profile.appearance, profile.placements) }
         ControllerLayout(vm.input, epoch, profile, rects, interactive = true)
 
-        Row(
-            Modifier.align(Alignment.TopCenter).padding(top = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SmallChipButton("Home") { vm.navigate(Screen.HOME) }
-            PlayerBadge(player)
-            ConnectionChip(status, Modifier.testTag("connectionChip"), bg = neu.chip, fg = neu.text)
-            SmallChipButton(if (showOverlay) "Hide" else "Live") { showOverlay = !showOverlay }
-            SmallChipButton("Edit") { vm.setEditMode(true) }
-            SmallChipButton("Settings") { vm.input.releaseAll(); showSettings = true }
-            if (vm.gyroAvailable) GyroChip(profile.gyroAim.enabled) { vm.setGyroEnabled(!profile.gyroAim.enabled) }
+        // 3.7.0: one button on top; Home, connection, player, Live, Edit, Settings and Gyro are in its menu
+        MenuButton(player, hid.isConnected, Modifier.align(Alignment.TopCenter).padding(top = 6.dp)) {
+            vm.input.releaseAll(); showMenu = true
         }
         if (!hid.isConnected) {
             Text(
                 "NOT CONNECTED - inputs are not reaching the PC",
                 color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 34.dp).testTag("notConnectedBanner")
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 42.dp).testTag("notConnectedBanner")
                     .background(Palette.Bad.copy(alpha = 0.85f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }
@@ -179,6 +172,20 @@ fun ControllerScreen(vm: MainViewModel) {
         }
         if (showOverlay) LiveOverlay(vm, Modifier.align(Alignment.Center).width(260.dp))
         if (showSettings) ControllerSettingsPanel(vm, profile, store.batterySaver, Modifier.align(Alignment.Center)) { showSettings = false }
+        if (showMenu) QuickMenu(
+            statusText = hid.connectedHost?.let { "Connected: ${it.displayName}" } ?: status.text,
+            connected = hid.isConnected,
+            player = player,
+            liveOn = showOverlay,
+            gyroAvailable = vm.gyroAvailable,
+            gyroOn = profile.gyroAim.enabled,
+            onHome = { showMenu = false; vm.navigate(Screen.HOME) },
+            onLive = { showMenu = false; showOverlay = !showOverlay },
+            onEdit = { showMenu = false; vm.setEditMode(true) },
+            onSettings = { showMenu = false; vm.input.releaseAll(); showSettings = true },
+            onGyro = { vm.setGyroEnabled(!profile.gyroAim.enabled) },
+            onClose = { showMenu = false },
+        )
     }
     }
 }
@@ -477,26 +484,11 @@ private fun MapChip(text: String, on: Boolean, tag: String, fontSize: androidx.c
     )
 }
 
-/** Which player this phone is (P1, P2…), so two players never grab the wrong phone. */
-@Composable
-private fun PlayerBadge(player: Int) {
-    Text(
-        "P$player", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black,
-        modifier = Modifier.background(if (player == 1) Color(0xFF4C6FFF) else Color(0xFFE0475B), RoundedCornerShape(50))
-            .padding(horizontal = 9.dp, vertical = 4.dp).testTag("playerBadge"),
-    )
-}
-
-/** Gyro on/off on the top bar (lit when on). */
-@Composable
-private fun GyroChip(on: Boolean, onClick: () -> Unit) {
-    val neu = LocalNeu.current
-    Text(
-        if (on) "Gyro ON" else "Gyro OFF", color = if (on) Color.White else neu.text, fontSize = 11.sp,
-        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
-        modifier = Modifier.background(if (on) Palette.Info else neu.chip, RoundedCornerShape(50)).clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 4.dp).testTag("chip_gyro"),
-    )
+/** Which pads each face-label set looks like (shown under its preview tile). */
+private fun faceLabelsHint(fl: FaceLabels) = when (fl) {
+    FaceLabels.PLAYSTATION -> "PS4 / PS5"
+    FaceLabels.XBOX -> "Xbox"
+    FaceLabels.NINTENDO -> "Switch / 3DS"
 }
 
 @Composable
@@ -549,18 +541,23 @@ private fun ControllerSettingsPanel(vm: MainViewModel, profile: ControllerProfil
             Text("Controller settings", color = neu.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             SmallChipButton("Close") { onClose() }
         }
+        // 3.7.0: every choice is a tile that draws the real button, and the controller behind updates live
         Text("Button style", color = neu.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (st in ButtonStyle.entries) MapChip(st.label, a.buttonStyle == st, "style_${st.name}") { vm.updateAppearance { it.copy(buttonStyle = st) } }
+            for (st in ButtonStyle.entries) StylePreviewTile(
+                st.label, "", st, a.faceLabels, a.buttonStyle == st, "style_${st.name}",
+            ) { vm.updateAppearance { it.copy(buttonStyle = st) } }
         }
         Text(a.buttonStyle.hint, color = neu.textDim, fontSize = 11.sp)
         Text("Face buttons", color = neu.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (fl in FaceLabels.entries) MapChip(fl.label, a.faceLabels == fl, "faces_${fl.name}") { vm.updateAppearance { it.copy(faceLabels = fl) } }
+            for (fl in FaceLabels.entries) StylePreviewTile(
+                faceLabelsHint(fl), "", a.buttonStyle, fl, a.faceLabels == fl, "faces_${fl.name}", cluster = true, width = 112.dp,
+            ) { vm.updateAppearance { it.copy(faceLabels = fl) } }
         }
         Text("Only the labels change: the buttons send the same signals, so emulator bindings stay.", color = neu.textDim, fontSize = 11.sp)
         val g = profile.gyroAim
-        Text("Gyro aim" + if (g.enabled) " (ON)" else " (OFF: turn on with Gyro on the top bar)", color = neu.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text("Gyro aim" + if (g.enabled) " (ON)" else " (OFF: turn on with Gyro in the ☰ menu)", color = neu.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Text("Turn the phone to aim: how fast you turn = how fast the camera turns. Stop and it stops.", color = neu.textDim, fontSize = 11.sp)
         SettingSlider("Gyro sensitivity", g.sensitivity, 0.25f..4f, "set_gyroSens") { v -> vm.updateGyroAim { it.copy(sensitivity = v) } }
         SettingSlider("Game dead-zone fix", g.gameDeadZone, 0f..0.4f, "set_gyroDz") { v -> vm.updateGyroAim { it.copy(gameDeadZone = v) } }

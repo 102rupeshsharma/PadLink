@@ -247,6 +247,7 @@ class ControllerUiTest {
 
     @Test fun editModeBlocksHidAndMovesControls() {
         connectHost(); openController()
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Edit is in the menu
         rule.onNodeWithTag("chip_Edit").performClick()
         rule.waitForIdle()
         val sentBefore = hid.sent.size

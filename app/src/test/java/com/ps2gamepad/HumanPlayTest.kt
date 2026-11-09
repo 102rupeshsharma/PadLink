@@ -72,6 +72,7 @@ class HumanPlayTest {
         val root = rule.onNodeWithTag("controller")
         val r = bounds("controller"); val ls = bounds("stick_left")
         root.performTouchInput { down(0, Offset(ls.center.x - r.left, ls.center.y - r.top)); moveBy(0, Offset(40f, 0f)) }
+        rule.onNodeWithTag("menuButton").thumbTap(finger = 1) // 3.7.0: Settings is in the menu
         rule.onNodeWithTag("chip_Settings").thumbTap(finger = 1)
         rule.onNodeWithTag("controllerSettings").assertIsDisplayed()
         root.performTouchInput { up(0) } // left thumb lets go too
@@ -88,6 +89,7 @@ class HumanPlayTest {
     }
 
     @Test fun settingsPanelScrollsWithARealSwipe() {
+        rule.onNodeWithTag("menuButton").thumbTap() // 3.7.0: Settings is in the menu
         rule.onNodeWithTag("chip_Settings").thumbTap()
         fun y() = rule.onNodeWithTag("set_stickSize", useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
         val before = y()
@@ -106,6 +108,7 @@ class HumanPlayTest {
     }
 
     @Test fun touchesOnTheOpenPanelNeverPressControlsBehindIt() {
+        rule.onNodeWithTag("menuButton").thumbTap() // 3.7.0: Settings is in the menu
         rule.onNodeWithTag("chip_Settings").thumbTap()
         val sentBefore = hid.sent.size
         rule.onNodeWithTag("controllerSettings").performTouchInput {

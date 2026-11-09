@@ -141,6 +141,7 @@ class ComboButtonUiTest {
     }
 
     @Test fun comboIsMadeInTheLayoutEditor() {
+        rule.onNodeWithTag("menuButton").performClick() // 3.7.0: Edit is in the menu
         rule.onNodeWithTag("chip_Edit").performClick()
         rule.onNodeWithTag("chip_+ Combo").performClick()
         rule.onNodeWithTag("comboEditor").assertIsDisplayed()
