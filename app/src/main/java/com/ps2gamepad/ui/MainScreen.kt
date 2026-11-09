@@ -55,6 +55,8 @@ class AppActions(
     val exit: () -> Unit,
     /** Asks for the "scan for nearby devices" permission, then runs the callback if granted. */
     val requestScanPermission: (onGranted: () -> Unit) -> Unit = { it() },
+    /** Opens Android's Bluetooth settings (to forget a laptop whose pairing is broken). */
+    val openBluetoothSettings: () -> Unit = {},
 )
 
 @Composable

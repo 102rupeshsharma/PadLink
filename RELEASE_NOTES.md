@@ -1,5 +1,24 @@
 # Release notes
 
+## PadLink 3.6.1 (versionCode 23), 2026-11-09: connect to any of your laptops
+
+- **Fix: back at the first laptop, the phone kept trying the other one** (reported: "I connected laptop A,
+  then laptop B; now at A it still shows B and I cannot connect"). Connect only ever tried the laptop used
+  last. Now **Connect tries the laptop used last, then every other paired laptop** (8 s each) until one
+  answers, and the one that answered is tried first next time. The start screen names the laptop being
+  tried. A laptop that connects by itself (Connect clicked in Windows) is accepted at once.
+- **Fix: "cannot connect to RUPESH" with no way out.** When a laptop removed PadLink but the phone still
+  remembered the laptop, "Pair & connect" skipped pairing (the phone thought it was paired) and the
+  connection failed silently. Now a laptop you pick that does not answer shows **"… did not answer"**
+  with steps and a **Pair again** button: the phone removes its old pairing, pairs fresh and connects.
+  Phones that do not let apps remove a pairing get **Open Bluetooth settings** with the steps to forget the
+  laptop by hand.
+- Tests: ConnectAnyLaptopViewModelTest (9: last laptop off → the other one connects; remembered next time;
+  none answers → stops; chosen laptop never answers → Pair again; Pair again forgets then pairs and
+  connects; phone blocks forgetting → Bluetooth settings; laptop connects by itself; Disconnect stops
+  trying; one laptop tried once), ConnectAnyLaptopUiTest (2, real UI). **Not yet checked on the real phone
+  and laptops**, especially whether this phone (POCO F6, Android 16) lets the app remove a pairing.
+
 ## PadLink 3.6.0 (versionCode 22) + PadLink Bridge 1.2.0, 2026-11-09: two players on one PC
 
 - **Two (up to four) phones on one PC**, e.g. Mortal Kombat player 1 vs player 2, in PS2 emulators

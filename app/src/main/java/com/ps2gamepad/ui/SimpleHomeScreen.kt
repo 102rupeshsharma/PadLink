@@ -64,7 +64,9 @@ fun SimpleHomeScreen(vm: MainViewModel, actions: AppActions) {
     val connecting by vm.connectRequested.collectAsStateWithLifecycle()
     val player by vm.player.collectAsStateWithLifecycle()
     val phoneName = name ?: PhoneNameControl.GAMEPAD_NAME
-    val st = simpleStatus(bt, perm, hid, vm.knownPc, phoneName, started = vm.started, connecting = connecting)
+    val trying by vm.connectingTo.collectAsStateWithLifecycle()
+    val st = simpleStatus(bt, perm, hid, vm.knownPc, phoneName, started = vm.started, connecting = connecting,
+        trying = trying, otherLaptops = (vm.connectCandidates().size - 1).coerceAtLeast(0))
     BackHandler { actions.exit() }
 
     Box(

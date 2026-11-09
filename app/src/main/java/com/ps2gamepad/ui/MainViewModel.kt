@@ -33,6 +33,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -210,14 +212,16 @@ class MainViewModel(
         wantRegistered = true
         autoRegisterAttempts = 0
         _connectRequested.value = true
+        _connectProblem.value = null
         connectTimeoutJob?.cancel()
+        val waitMs = maxOf(CONNECT_TIMEOUT_MS, ATTEMPT_MS * connectCandidates().size + 4_000)
         connectTimeoutJob = viewModelScope.launch {
-            delay(CONNECT_TIMEOUT_MS)
+            delay(waitMs)
             if (!hidState.value.isConnected) { _connectRequested.value = false; log.add("Connect: no answer from the laptop") }
         }
         val pc = knownPc
         when (hidState.value.registration) {
-            RegistrationState.Registered -> if (pc != null) connect(pc)
+            RegistrationState.Registered -> connectInTurn(connectCandidates(), chosen = false)
             RegistrationState.Registering -> Unit // connects to the known laptop once registered
             else -> { log.add("Connect: starting the gamepad"); registerInternal() }
         }
@@ -274,10 +278,100 @@ class MainViewModel(
         when {
             st.connectedHost?.address == host.address -> { chosenHost = null; _connectRequested.value = false }
             st.isConnected -> { log.add("Switching laptop: ${st.connectedHost?.displayName} -> ${host.displayName}"); hid.disconnect() }
-            st.registration == RegistrationState.Registered -> { log.add("Connecting to ${host.displayName}"); hid.connect(host.address) }
+            st.registration == RegistrationState.Registered -> connectInTurn(listOf(host), chosen = true)
             else -> Unit // connects in onHidState once registered
         }
     }
+
+    // ------------------------------------------------------------------ connecting to any laptop (3.6.1)
+
+    private val _connectingTo = MutableStateFlow<HostDevice?>(null)
+    /** The laptop Connect is trying right now (null when not trying). */
+    val connectingTo: StateFlow<HostDevice?> = _connectingTo.asStateFlow()
+
+    private val _connectProblem = MutableStateFlow<HostDevice?>(null)
+    /**
+     * A laptop the user picked that did not answer. Usually its pairing is broken on one side (the laptop
+     * removed the phone, or the phone was reset); the "Choose a laptop" screen then offers Pair again.
+     */
+    val connectProblem: StateFlow<HostDevice?> = _connectProblem.asStateFlow()
+
+    private val _forgetInSettings = MutableStateFlow<HostDevice?>(null)
+    /** This phone did not let the app remove the old pairing: the user forgets the laptop in Android's settings. */
+    val forgetInSettings: StateFlow<HostDevice?> = _forgetInSettings.asStateFlow()
+
+    private var connectInTurnJob: Job? = null
+
+    /** Every laptop Connect may use: the one used last first, then all other paired laptops. */
+    fun connectCandidates(): List<HostDevice> = (listOfNotNull(knownPc) + computerHosts).distinctBy { it.address }
+
+    /**
+     * Connects to the first laptop of [hosts] that answers, trying them one after the other ([ATTEMPT_MS]
+     * each), so Connect works with whichever laptop is switched on and nearby. [chosen]: the user picked
+     * this one laptop; if it never answers, [connectProblem] offers Pair again.
+     */
+    private fun connectInTurn(hosts: List<HostDevice>, chosen: Boolean) {
+        connectInTurnJob?.cancel()
+        if (hosts.isEmpty()) return
+        _connectProblem.value = null
+        tryLaptop(hosts[0], previous = null)
+        connectInTurnJob = viewModelScope.launch {
+            for (i in hosts.indices) {
+                if (i > 0) {
+                    val st = hidState.value
+                    if (st.isConnected || userDisconnected || waitingForNewLaptop || st.registration != RegistrationState.Registered) return@launch
+                    tryLaptop(hosts[i], previous = hosts[i - 1])
+                }
+                if (withTimeoutOrNull(ATTEMPT_MS) { hidState.first { it.isConnected } } != null) return@launch
+            }
+            _connectingTo.value = null
+            _connectRequested.value = false
+            connectTimeoutJob?.cancel()
+            if (chosen) {
+                _connectProblem.value = hosts[0]
+                log.add("${hosts[0].displayName} did not answer (pairing broken on one side?): Pair again offered")
+            } else {
+                log.add("No paired laptop answered: ${hosts.joinToString { it.displayName }}")
+            }
+        }
+    }
+
+    private fun tryLaptop(h: HostDevice, previous: HostDevice?) {
+        _connectingTo.value = h
+        log.add(if (previous == null) "Connecting to ${h.displayName}" else "${previous.displayName} did not answer: trying ${h.displayName}")
+        hid.connect(h.address)
+    }
+
+    /**
+     * "Pair again" for a laptop whose pairing is broken: the phone forgets its old pairing, then pairs
+     * fresh and connects. If this phone does not allow apps to forget a pairing, [forgetInSettings] asks the
+     * user to do it in Android's Bluetooth settings.
+     */
+    fun pairAgain(host: HostDevice) {
+        val s = laptopScanner ?: run { _forgetInSettings.value = host; return }
+        _connectProblem.value = null
+        _forgetInSettings.value = null
+        _pairing.value = host.address
+        log.add("Pair again with ${host.displayName}: removing the old pairing")
+        val started = s.forget(host.address) { forgotten ->
+            if (!forgotten) {
+                _pairing.value = null
+                _forgetInSettings.value = host
+                log.add("Could not remove the old pairing with ${host.displayName}: forget it in Bluetooth settings")
+                return@forget
+            }
+            refreshBondedHosts()
+            pairAndConnect(host)
+        }
+        if (!started) {
+            _pairing.value = null
+            _forgetInSettings.value = host
+            log.add("This phone does not let apps remove a pairing: forget ${host.displayName} in Bluetooth settings")
+        }
+    }
+
+    /** The user dismissed the "did not answer" help. */
+    fun clearConnectProblem() { _connectProblem.value = null; _forgetInSettings.value = null }
 
     /** "Search for laptops" (scan permission must already be granted). */
     fun startSearch(): Boolean {
@@ -348,15 +442,16 @@ class MainViewModel(
     private fun scheduleAutoConnect() {
         autoConnectJob?.cancel()
         if (userDisconnected || waitingForNewLaptop) return
-        chosenHost?.let { h -> log.add("Connecting to ${h.displayName}"); hid.connect(h.address); return }
+        chosenHost?.let { h -> connectInTurn(listOf(h), chosen = true); return }
         autoConnectJob = viewModelScope.launch {
             delay(autoConnectDelayMs) // give the stack's own reconnect a chance first
             val st = hidState.value
             if (st.isConnected || st.connection is ConnectionState.Connecting || userDisconnected || waitingForNewLaptop) return@launch
             if (st.registration != RegistrationState.Registered) return@launch
-            val pc = knownPc ?: return@launch
-            log.add("Auto connect to ${pc.displayName}")
-            hid.connect(pc.address)
+            val all = connectCandidates()
+            if (all.isEmpty()) return@launch
+            log.add("Auto connect: ${all.joinToString { it.displayName }}")
+            connectInTurn(all, chosen = false)
         }
     }
 
@@ -497,6 +592,8 @@ class MainViewModel(
 
     fun disconnect() {
         userDisconnected = true
+        connectInTurnJob?.cancel()
+        _connectingTo.value = null
         autoConnectJob?.cancel()
         reconnectJob?.cancel()
         input.releaseAll()
@@ -698,10 +795,13 @@ class MainViewModel(
         }
         if (!s.isConnected && wasConnectedTo(prev) && chosen != null && s.registration == RegistrationState.Registered &&
             s.connection !is ConnectionState.Connecting) {
-            log.add("Connecting to ${chosen.displayName}")
-            hid.connect(chosen.address)
+            connectInTurn(listOf(chosen), chosen = true)
         }
         if (s.isConnected && !wasConnected) {
+            connectInTurnJob?.cancel()
+            _connectingTo.value = null
+            _connectProblem.value = null
+            _forgetInSettings.value = null
             chosenHost = null
             waitingForNewLaptop = false
             _connectRequested.value = false
@@ -750,6 +850,8 @@ class MainViewModel(
         const val MAX_AUTO_REGISTER = 3
         /** How long "Connecting…" is shown after tapping Connect without a connection. */
         const val CONNECT_TIMEOUT_MS = 20_000L
+        /** Connect waits this long for one laptop before trying the next paired laptop. */
+        const val ATTEMPT_MS = 8_000L
     }
 
     override fun onCleared() {

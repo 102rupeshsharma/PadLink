@@ -46,6 +46,9 @@ fun LaptopsScreen(vm: MainViewModel, actions: AppActions) {
     val searching by vm.searching.collectAsStateWithLifecycle()
     val pairing by vm.pairing.collectAsStateWithLifecycle()
     val connecting by vm.connectRequested.collectAsStateWithLifecycle()
+    val trying by vm.connectingTo.collectAsStateWithLifecycle()
+    val problem by vm.connectProblem.collectAsStateWithLifecycle()
+    val forgetInSettings by vm.forgetInSettings.collectAsStateWithLifecycle()
     val laptops = bonded.filter { it.isComputer }
     val pairedAddresses = bonded.map { it.address }.toSet()
     val newOnes = found.filter { it.address !in pairedAddresses }
@@ -63,10 +66,14 @@ fun LaptopsScreen(vm: MainViewModel, actions: AppActions) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
                 hid.connectedHost?.let { "Connected to ${it.displayName} ✓" }
+                    ?: trying?.let { "Connecting to ${it.displayName}…" }
                     ?: if (connecting) "Connecting…" else "Not connected",
                 color = if (hid.isConnected) Palette.Good else Palette.TextDim, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.testTag("laptopsStatus"),
             )
+
+            forgetInSettings?.let { h -> ForgetInSettingsCard(h, actions) }
+                ?: problem?.let { h -> NoAnswerCard(h, busy = pairing != null, onPairAgain = { vm.pairAgain(h) }, onRetry = { vm.chooseLaptop(h) }) }
 
             Section("Your laptops") {
                 if (laptops.isEmpty()) {
@@ -122,6 +129,51 @@ fun LaptopsScreen(vm: MainViewModel, actions: AppActions) {
                 }
             }
         }
+    }
+}
+
+/**
+ * The laptop the user picked did not answer. Almost always the pairing is broken on one side: the laptop
+ * removed PadLink (or was reset) but the phone still has the old pairing, or the other way round.
+ */
+@Composable
+private fun NoAnswerCard(h: HostDevice, busy: Boolean, onPairAgain: () -> Unit, onRetry: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().background(Color(0x33FFB020), RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0x99FFB020), RoundedCornerShape(16.dp)).padding(14.dp).testTag("noAnswerCard"),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("${h.displayName} did not answer", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "1. On ${h.displayName}: turn Bluetooth on. If \"PadLink\" is listed in Bluetooth & devices, click it → Remove device.\n" +
+                "2. Still on ${h.displayName}: open Add device → Bluetooth and leave it open.\n" +
+                "3. Tap Pair again below. Confirm the code on both screens.",
+            color = Palette.Text, fontSize = 13.sp, lineHeight = 19.sp,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            PillButton(if (busy) "Pairing…" else "Pair again", primary = true, tag = "pairAgain") { if (!busy) onPairAgain() }
+            PillButton("Try again", primary = false, tag = "retryLaptop") { if (!busy) onRetry() }
+        }
+    }
+}
+
+/** This phone did not let the app remove the old pairing: do it in Android's Bluetooth settings. */
+@Composable
+private fun ForgetInSettingsCard(h: HostDevice, actions: AppActions) {
+    Column(
+        Modifier.fillMaxWidth().background(Color(0x33FFB020), RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0x99FFB020), RoundedCornerShape(16.dp)).padding(14.dp).testTag("forgetCard"),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Remove the old pairing with ${h.displayName}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "This phone does not let apps do it, so please do it once by hand:\n" +
+                "1. Tap Open Bluetooth settings.\n" +
+                "2. Tap ⚙ (or ⓘ) next to ${h.displayName} → Unpair / Forget.\n" +
+                "3. Come back here and tap Search for laptops, then Pair & connect on ${h.displayName}.",
+            color = Palette.Text, fontSize = 13.sp, lineHeight = 19.sp,
+        )
+        PillButton("Open Bluetooth settings", primary = true, tag = "openBtSettings") { actions.openBluetoothSettings() }
     }
 }
 
