@@ -162,3 +162,57 @@ class ControllerMenuUiTest {
     }
 }
 
+
+/** 3.7.1, reported: "I open the menu inside the controller, press Back, and it does not close." Real Back button. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "w891dp-h411dp-land")
+class ControllerBackButtonTest {
+    @get:Rule val rule = androidx.compose.ui.test.junit4.createAndroidComposeRule<androidx.activity.ComponentActivity>()
+    private val hid = FakeHid()
+    private lateinit var vm: MainViewModel
+
+    @Before fun setUp() {
+        vm = MainViewModel(hid, MutableStateFlow(BluetoothState.ENABLED), { emptyList() }, DiagnosticLog(), emptyList(), { 0L })
+        rule.setContent { App(vm, AppActions({}, {}, {}, {})) }
+        rule.runOnIdle {
+            vm.onPermissionsChanged(true); vm.onForeground(); vm.register()
+            hid.emit(HidEvent.AppStatusChanged(true)); hid.emit(HidEvent.ConnectionChanged(HostDevice("1", "RUPESH"), HidStateReducer.STATE_CONNECTED))
+            vm.navigate(Screen.CONTROLLER)
+        }
+    }
+
+    private fun back() { rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }; rule.waitForIdle() }
+
+    @Test fun backClosesTheMenuAndStaysInTheGame() {
+        rule.onNodeWithTag("menuButton").performClick()
+        rule.onNodeWithTag("quickMenu").assertIsDisplayed()
+        back()
+        rule.onNodeWithTag("quickMenu").assertDoesNotExist()
+        rule.runOnIdle { assertEquals("still playing", Screen.CONTROLLER, vm.screen.value) }
+        rule.onNodeWithText("Press back again to leave the controller").assertDoesNotExist()
+        // the menu opens again normally
+        rule.onNodeWithTag("menuButton").performClick()
+        rule.onNodeWithTag("quickMenu").assertIsDisplayed()
+    }
+
+    @Test fun backClosesSettingsThenTheUsualDoubleBackLeaves() {
+        rule.onNodeWithTag("menuButton").performClick()
+        rule.onNodeWithTag("chip_Settings").performClick()
+        rule.onNodeWithTag("controllerSettings").assertIsDisplayed()
+        back()
+        rule.onNodeWithTag("controllerSettings").assertDoesNotExist()
+        rule.runOnIdle { assertEquals(Screen.CONTROLLER, vm.screen.value) }
+        back() // nothing open: first press only shows the hint
+        rule.runOnIdle { assertEquals(Screen.CONTROLLER, vm.screen.value) }
+        rule.onNodeWithText("Press back again to leave the controller").assertIsDisplayed()
+        back() // second press within 2 s leaves
+        rule.runOnIdle { assertEquals(Screen.HOME, vm.screen.value) }
+    }
+
+    @Test fun backWithTheMenuOpenNeverLeavesEvenWhenPressedTwice() {
+        rule.onNodeWithTag("menuButton").performClick()
+        back() // closes the menu
+        back() // hint only
+        rule.runOnIdle { assertEquals(Screen.CONTROLLER, vm.screen.value) }
+    }
+}
