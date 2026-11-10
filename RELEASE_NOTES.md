@@ -1,5 +1,14 @@
 # Release notes
 
+## PadLink 3.7.1 (versionCode 26), 2026-11-10: Back closes the ☰ menu
+
+- **Fix: Back did not close the ☰ menu (or the Settings panel) inside the controller** (reported). Back now
+  closes what is open first: the menu, then Settings, then the layout editor. Only with nothing open does the
+  usual "press Back twice to leave" apply, so Back can never leave the game while the menu is open.
+- Tests: ControllerBackButtonTest (3, the real Android Back button): Back closes the menu and stays in the
+  game; Back closes Settings, then the double Back leaves; Back twice with the menu open never leaves. All 3
+  fail without the fix.
+
 ## PadLink 3.7.0 (versionCode 25), 2026-11-09: Glossy buttons, Switch / 3DS labels, one-button top bar
 
 - **New button style: Glossy** (requested, after pictures of PS4/PS5 and Switch/3DS style buttons): dark

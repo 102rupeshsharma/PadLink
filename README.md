@@ -113,9 +113,10 @@ While playing, only **one button** sits at the top: **● P1 ☰**. The dot is g
 | **Settings** | Button style, face labels, gyro options, battery saver, size and opacity |
 | **Gyro ON / OFF** | Aim by turning the phone (blue = on). The menu stays open so you can see it switch |
 
-Tap outside the menu (or ✕) to close it. While the menu is open nothing on the controller can be pressed.
+Tap outside the menu, ✕ or **Back** to close it. While the menu is open nothing on the controller can be pressed.
 
-Press **Back twice** to leave the controller (one press only shows a hint, so you can't leave by accident).
+**Back** first closes whatever is open (the ☰ menu, then Settings). With nothing open, press **Back twice** to leave the
+controller (one press only shows a hint, so you can't leave by accident).
 
 **Tips while playing:**
 - Lift your thumb off a stick and your character stops at once.
@@ -306,8 +307,8 @@ many PS2 games do; some PC ports are single-player only, and no controller can c
 
 ---
 
-**Version 3.7.0** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 334 automated tests (333 passed,
-1 skipped). PC: 74 automated tests (all passed).
+**Version 3.7.1** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 337 automated tests (334 passed,
+3 skipped). PC: 74 automated tests (all passed).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
 - PadLink Bridge on the developer's PC with the real driver and the phone: Xbox mode on/off, and two Xbox
@@ -454,12 +455,12 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.7.0, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.7.1, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `3ab97b2529e39d62ee0e3ed49fef10836061f6e16fd7b360203baf4bde27bee5`
+SHA-256: `b742a81d477b277ef010188d37f0d89f3d986e55d3f2c25e2c9107d92729bef8`
 
 ### 💻 2. PC app: only for PC games and ports
 

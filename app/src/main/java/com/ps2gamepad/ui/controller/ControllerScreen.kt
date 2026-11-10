@@ -133,6 +133,9 @@ fun ControllerScreen(vm: MainViewModel) {
     var lastBack by remember { mutableLongStateOf(0L) }
     var backHint by remember { mutableStateOf(false) }
     BackHandler {
+        // 3.7.1: Back closes what is open first (the ☰ menu, then Settings), like every Android screen
+        if (showMenu) { showMenu = false; return@BackHandler }
+        if (showSettings) { showSettings = false; return@BackHandler }
         if (editing) { vm.setEditMode(false); return@BackHandler }
         val now = System.currentTimeMillis()
         if (now - lastBack < 2000) vm.navigate(Screen.HOME) else { lastBack = now; backHint = true; vm.input.releaseAll() }
