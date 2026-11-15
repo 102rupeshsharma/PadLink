@@ -537,7 +537,7 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.11.0, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.11.1, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
