@@ -1,5 +1,22 @@
 # Release notes
 
+## PadLink 3.10.1 (versionCode 30), 2026-11-16: Mapping mode records the right sign in Azahar
+
+- **Fix (reported with a screenshot): in Azahar, Right recorded "Axis 0-" and Down "Axis 1-"** (C-Stick:
+  "Axis 2-", "Axis 3-"); the diagonals (Button 12-19) were right. Cause, found in Azahar's source
+  (src/input_common/sdl/sdl_impl.cpp, SDLButtonPoller::GetNextInput): when a box is clicked, Azahar takes the
+  FIRST value it sees on an axis as that axis's rest position. 3.10.0 jumped from 0 straight to full, so Azahar
+  decided the axis rests at full and recorded the release (back to 0) as "-". Windows itself read PadLink
+  correctly (checked on the laptop: 20 buttons, every axis resting at the middle).
+- **Fix:** in Mapping mode a straight direction now rises 20 % → 80 % → 100 % (50 ms apart). The first step
+  tells the emulator where the middle is, the 80 % step is recorded as the press with the right sign. A started
+  direction is held until the last step (100 ms), so even a quick flick sends the press before the release.
+  Diagonals stay one button. Play (Mapping mode off) is unchanged.
+- Tests: MappingRampTest (11) includes a faithful port of Azahar's binding code: it reproduces the reported
+  "Axis 0-" with the 3.10.0 behaviour, and records all 16 directions correctly (Axis 0-/0+/1-/1+/2-/2+/3-/3+,
+  Button 12-19) with 3.10.1, also for flicks held 0-49 ms; ramp timing, sliding to another direction,
+  Mapping off / release-all mid-ramp, both sticks. With the ramp disabled 4 of them fail (checked).
+
 ## PadLink 3.10.0 (versionCode 29), 2026-11-16: Mapping mode, 8 codes per joystick
 
 - **Reported:** dragging the joystick up-left / up-right in Azahar still recorded "Axis 1-" (the same as Up):

@@ -46,6 +46,8 @@ class ControllerInputManager(
     /** Minimum change in axis counts before an analog-only report is sent. 1 = every change. */
     private val axisThreshold: Int = 1,
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
+    /** Runs a task after a delay (Mapping mode ramp). Tests pass a manual one. */
+    private val delayed: (Long, () -> Unit) -> Unit = DefaultDelay::run,
 ) {
     private val lock = Any()
 
@@ -91,6 +93,9 @@ class ControllerInputManager(
     private val mappingActive: Boolean get() = mappingMode && extendedReports
     /** Direction each stick is in while mapping (kept for the hysteresis). */
     private val mapDir = HashMap<Stick, Hat>().apply { put(Stick.LEFT, Hat.NEUTRAL); put(Stick.RIGHT, Hat.NEUTRAL) }
+    /** Ramp of a straight direction: the step it is on, and a token that cancels steps still pending. */
+    private val rampStep = HashMap<Stick, Int>()
+    private val rampToken = HashMap<Stick, Int>()
 
     /**
      * Mapping mode on/off: while on, each stick sends ONE code per direction (left/right/up/down = one axis,
@@ -120,20 +125,47 @@ class ControllerInputManager(
         val base = if (stick == Stick.LEFT) 0 else 4
         if (!mappingActive) {
             mapDir[stick] = Hat.NEUTRAL
+            rampToken[stick] = (rampToken[stick] ?: 0) + 1 // cancel a ramp still running
             for (i in base until base + 4) diagonalHolders[i]?.remove(source)
             mutate(t) { it.withStick(stick, StickMath.toAxis(v.x), StickMath.toAxis(v.y)).copy(diagonals = diagonalsFromHolders()) }
             return
         }
-        val dir = StickMapping.direction(v, mapDir.getValue(stick))
+        val prev = mapDir.getValue(stick)
+        var dir = StickMapping.direction(v, prev)
+        // a quick flick: the "pressed" step (80 %) must reach the PC on its own, before the release, or the emulator
+        // records the release as the opposite direction. So a started direction is held until the last step
+        // (100 ms); that step re-checks the thumb, 50 ms after the pressed step went out.
+        if (dir != prev && StickMapping.isStraight(prev) && (rampStep[stick] ?: 0) < StickMapping.RAMP.size - 1) dir = prev
         mapDir[stick] = dir
+        if (dir != prev) {
+            val token = (rampToken[stick] ?: 0) + 1
+            rampToken[stick] = token
+            rampStep[stick] = 0
+            if (StickMapping.isStraight(dir)) scheduleRamp(stick, dir, token)
+        }
         val diag = com.ps2gamepad.model.StickDirection(stick, dir).diagonalIndex
         for (i in base until base + 4) {
             val set = diagonalHolders.getOrPut(i) { HashSet() }
             if (i == diag) set.add(source) else set.remove(source)
         }
-        val a = StickMapping.axes(dir) // straight: one full axis; diagonal / neutral: no axis movement
+        // straight: one axis, rising along the ramp; diagonal / neutral: no axis movement
+        val level = if (StickMapping.isStraight(dir)) StickMapping.RAMP[rampStep[stick] ?: 0] else 0f
+        val a = StickMapping.axes(dir)
         // one state change: the PC never sees an axis and a diagonal at the same time
-        mutate(t) { it.withStick(stick, StickMath.toAxis(a.x), StickMath.toAxis(a.y)).copy(diagonals = diagonalsFromHolders()) }
+        mutate(t) { it.withStick(stick, StickMath.toAxis(a.x * level), StickMath.toAxis(a.y * level)).copy(diagonals = diagonalsFromHolders()) }
+    }
+
+    /** The remaining ramp steps of [dir]; each one only applies if nothing changed in between. */
+    private fun scheduleRamp(stick: Stick, dir: Hat, token: Int) {
+        for (step in 1 until StickMapping.RAMP.size) {
+            delayed(StickMapping.RAMP_STEP_MS * step) {
+                synchronized(lock) {
+                    if (rampToken[stick] != token || !mappingActive || mapDir[stick] != dir) return@synchronized
+                    rampStep[stick] = step
+                    if (stick == Stick.LEFT) applyLeft(clock()) else applyRight(clock())
+                }
+            }
+        }
     }
 
     /** Which controls currently hold each button (the built-in control and any extra buttons). */
@@ -246,6 +278,7 @@ class ControllerInputManager(
             dpadHolders.clear()
             diagonalHolders.clear()
             mapDir[Stick.LEFT] = Hat.NEUTRAL; mapDir[Stick.RIGHT] = Hat.NEUTRAL
+            for (s in Stick.entries) rampToken[s] = (rampToken[s] ?: 0) + 1
             touchRight = StickVector.ZERO
             gyroRight = StickVector.ZERO
             touchLeft = StickVector.ZERO
@@ -268,6 +301,14 @@ class ControllerInputManager(
     }
 
     companion object { const val BASE_SOURCE = "base" }
+
+    /** One shared background timer for the Mapping mode ramp (daemon: never keeps the app alive). */
+    private object DefaultDelay {
+        private val exec = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+            Thread(r, "padlink-mapping-ramp").apply { isDaemon = true }
+        }
+        fun run(ms: Long, task: () -> Unit) { exec.schedule(task, ms, java.util.concurrent.TimeUnit.MILLISECONDS) }
+    }
 
     private inline fun mutate(eventUptimeMs: Long, f: (GamepadState) -> GamepadState) {
         synchronized(lock) {
