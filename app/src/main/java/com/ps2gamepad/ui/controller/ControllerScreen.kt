@@ -254,7 +254,8 @@ fun ControllerLayout(
             )) {
                 if (a.isHidden(id)) continue // 3.8.0: hidden in this layout
                 val label = when (id) { ControlId.L2 -> skin.labelL2; ControlId.L1 -> skin.labelL1; ControlId.R2 -> skin.labelR2; else -> skin.labelR1 }
-                DigitalButton(b, input, epoch, label, KeyShape.ROUNDED, fs(id, 0.36f), Modifier.at(id).testTag("btn_$tag"))
+                DigitalButton(b, input, epoch, label, a.shapeOf(id).keyShapeOr(KeyShape.ROUNDED), fs(id, 0.36f), Modifier.at(id).testTag("btn_$tag"),
+                    customLabel = a.labelOf(id))
             }
 
             if (!a.isHidden(ControlId.DPAD)) DpadControl(input, epoch, Modifier.at(ControlId.DPAD).testTag("dpad"))
@@ -262,28 +263,38 @@ fun ControllerLayout(
             ControlId.FACE_BUTTONS.forEachIndexed { i, id ->
                 if (a.isHidden(id)) return@forEachIndexed
                 val b = when (id) { ControlId.TRIANGLE -> ControllerButton.TRIANGLE; ControlId.CIRCLE -> ControllerButton.CIRCLE; ControlId.CROSS -> ControllerButton.CROSS; else -> ControllerButton.SQUARE }
-                DigitalButton(b, input, epoch, b.label, KeyShape.CIRCLE, fs(id, 0.42f), Modifier.at(id).testTag("btn_${b.name}"), faceIndex = i)
+                DigitalButton(b, input, epoch, b.label, a.shapeOf(id).keyShapeOr(KeyShape.CIRCLE), fs(id, 0.42f), Modifier.at(id).testTag("btn_${b.name}"),
+                    faceIndex = i, customLabel = a.labelOf(id))
             }
             if (!a.isHidden(ControlId.LEFT_STICK)) AnalogStick(Stick.LEFT, input, epoch, profile.left, Modifier.at(ControlId.LEFT_STICK).testTag("stick_left"))
             if (!a.isHidden(ControlId.RIGHT_STICK)) AnalogStick(Stick.RIGHT, input, epoch, profile.right, Modifier.at(ControlId.RIGHT_STICK).testTag("stick_right"))
-            if (!a.isHidden(ControlId.L3)) DigitalButton(ControllerButton.L3, input, epoch, skin.labelL3, KeyShape.CIRCLE, fs(ControlId.L3, 0.3f), Modifier.at(ControlId.L3).testTag("btn_L3"))
-            if (!a.isHidden(ControlId.R3)) DigitalButton(ControllerButton.R3, input, epoch, skin.labelR3, KeyShape.CIRCLE, fs(ControlId.R3, 0.3f), Modifier.at(ControlId.R3).testTag("btn_R3"))
-            if (!a.isHidden(ControlId.SELECT)) DigitalButton(ControllerButton.SELECT, input, epoch, skin.labelSelect, KeyShape.PILL, fs(ControlId.SELECT, 0.34f), Modifier.at(ControlId.SELECT).testTag("btn_SELECT"))
-            if (!a.isHidden(ControlId.START)) DigitalButton(ControllerButton.START, input, epoch, skin.labelStart, KeyShape.PILL, fs(ControlId.START, 0.34f), Modifier.at(ControlId.START).testTag("btn_START"))
+            for ((id, b, def) in listOf(
+                Triple(ControlId.L3, ControllerButton.L3, KeyShape.CIRCLE), Triple(ControlId.R3, ControllerButton.R3, KeyShape.CIRCLE),
+                Triple(ControlId.SELECT, ControllerButton.SELECT, KeyShape.PILL), Triple(ControlId.START, ControllerButton.START, KeyShape.PILL),
+            )) {
+                if (a.isHidden(id)) continue
+                val label = when (id) { ControlId.L3 -> skin.labelL3; ControlId.R3 -> skin.labelR3; ControlId.SELECT -> skin.labelSelect; else -> skin.labelStart }
+                val k = if (def == KeyShape.CIRCLE) 0.3f else 0.34f
+                DigitalButton(b, input, epoch, label, a.shapeOf(id).keyShapeOr(def), fs(id, k), Modifier.at(id).testTag("btn_${b.name}"),
+                    customLabel = a.labelOf(id))
+            }
             if (extras.isNotEmpty()) BoxWithConstraints(Modifier.fillMaxSize()) {
                 val cw = maxWidth.value
                 val ch = maxHeight.value
                 for (e in extras) {
                     val r = extraRect(e, cw, ch, a)
                     if (e.stickDirection != null) {
-                        StickDirectionButton(e.id, e.stickDirection, input, epoch, (r.h * 0.34f).sp, Modifier.place(r).testTag("extra_${e.id}"))
+                        StickDirectionButton(e.id, e.stickDirection, input, epoch, (r.h * 0.34f).sp, Modifier.place(r).testTag("extra_${e.id}"),
+                            customLabel = e.label, shape = e.shape.keyShapeOr(KeyShape.CIRCLE))
                     } else if (e.isCombo) {
-                        val label = comboLabel(e, a.faceLabels)
-                        ComboButton(e, input, epoch, label, (r.h * if (label.length > 6) 0.24f else 0.32f).sp, Modifier.place(r).testTag("extra_${e.id}"))
+                        val label = e.label ?: comboLabel(e, a.faceLabels)
+                        ComboButton(e, input, epoch, label, (r.h * if (label.length > 6) 0.24f else 0.32f).sp, Modifier.place(r).testTag("extra_${e.id}"),
+                            shape = e.shape.keyShapeOr(KeyShape.ROUNDED))
                     } else {
                         DigitalButton(
-                            e.button, input, epoch, extraLabel(e.button), KeyShape.ROUNDED, (r.h * 0.34f).sp,
+                            e.button, input, epoch, extraLabel(e.button), e.shape.keyShapeOr(KeyShape.ROUNDED), (r.h * 0.34f).sp,
                             Modifier.place(r).testTag("extra_${e.id}"), source = "extra_${e.id}", faceIndex = faceIndexOf(e.button),
+                            customLabel = e.label,
                         )
                     }
                 }
@@ -420,6 +431,20 @@ private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float
                 contentAlignment = Alignment.Center,
             ) { Text("✕", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
         }
+        val selBuiltIn = selected
+        if (selBuiltIn != null) {
+            // 3.11.0: delete a built-in button from this layout (it can be brought back with "+ L2" etc.)
+            Box(
+                Modifier.offset((frame.left - handle / 2).dp, (frame.top - handle / 2).dp).size(handle.dp)
+                    .background(Palette.Bad, CircleShape).border(2.dp, Color.White, CircleShape)
+                    .clickable {
+                        vm.setControlHidden(selBuiltIn, true); selected = null
+                        message = "${selBuiltIn.label} deleted from this layout. Bring it back with + ${selBuiltIn.label} below"
+                    }
+                    .testTag("controlDeleteX"),
+                contentAlignment = Alignment.Center,
+            ) { Text("✕", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+        }
     }
 
     Column(
@@ -533,7 +558,34 @@ private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float
                 }
             }
         }
+        if (selX != null) {
+            val default = when {
+                selX.stickDirection != null -> selX.stickDirection.label
+                selX.isCombo -> comboLabel(selX.copy(label = null), profile.appearance.faceLabels)
+                else -> extraLabel(selX.button)
+            }
+            val defShape = when {
+                selX.stickDirection != null -> com.ps2gamepad.model.ButtonShape.CIRCLE
+                else -> com.ps2gamepad.model.ButtonShape.RECTANGLE
+            }
+            ButtonLookEditor(
+                text = selX.label ?: "", placeholder = default, shape = selX.shape, defaultShape = defShape,
+                onText = { t -> extras = extras.map { if (it.id == selX.id) it.copy(label = com.ps2gamepad.model.ButtonShape.cleanLabel(t)) else it } },
+                onShape = { sh -> extras = extras.map { if (it.id == selX.id) it.copy(shape = sh) else it } },
+            )
+        }
         val sel = selected
+        if (sel != null && sel in ControlId.customizable) {
+            val a = profile.appearance
+            val defShape = when (sel) {
+                ControlId.L3, ControlId.R3, ControlId.TRIANGLE, ControlId.CIRCLE, ControlId.CROSS, ControlId.SQUARE -> com.ps2gamepad.model.ButtonShape.CIRCLE
+                else -> com.ps2gamepad.model.ButtonShape.RECTANGLE
+            }
+            ButtonLookEditor(
+                text = a.labelOf(sel) ?: "", placeholder = defaultLabelOf(sel, a.faceLabels), shape = a.shapeOf(sel), defaultShape = defShape,
+                onText = { vm.setControlLabel(sel, it) }, onShape = { vm.setControlShape(sel, it) },
+            )
+        }
         if (sel != null) {
             val scale = draft.getValue(sel).w / defaults.getValue(sel).w
             Row(
@@ -561,8 +613,66 @@ private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float
                 )
             }
         }
+        val deleted = ControlId.editable.filter { profile.appearance.isHidden(it) }
+        if (deleted.isNotEmpty()) {
+            Row(
+                Modifier.padding(top = 4.dp).background(Color(0xE6000000), RoundedCornerShape(10.dp)).padding(horizontal = 8.dp, vertical = 4.dp)
+                    .testTag("deletedRow"),
+                horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Deleted:", color = Color(0xFFB7BCCB), fontSize = 11.sp)
+                for (id in deleted) MapChip("+ ${defaultLabelOf(id, profile.appearance.faceLabels)}", false, "restore_${id.name}") {
+                    vm.setControlHidden(id, false); message = "${id.label} is back"
+                }
+            }
+        }
         message?.let {
             Text(it, color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp).background(Color(0xCC000000), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 2.dp))
+        }
+    }
+}
+
+/** The name a control shows when it has no own text (face buttons follow the chosen labels). */
+private fun defaultLabelOf(id: ControlId, labels: FaceLabels): String {
+    val i = ControlId.FACE_BUTTONS.indexOf(id)
+    return if (i >= 0) FaceColors.text(labels, i) else id.label
+}
+
+/**
+ * 3.11.0: own text (up to 6 characters, empty = the normal label) and shape (Circle / Square / Rectangle, or the
+ * normal one) for the selected button. Only the look changes; the button sends the same signal.
+ */
+@Composable
+private fun ButtonLookEditor(
+    text: String, placeholder: String, shape: com.ps2gamepad.model.ButtonShape?, defaultShape: com.ps2gamepad.model.ButtonShape,
+    onText: (String) -> Unit, onShape: (com.ps2gamepad.model.ButtonShape?) -> Unit,
+) {
+    Row(
+        Modifier.padding(top = 4.dp).background(Color(0xE6000000), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp)
+            .testTag("lookEditor"),
+        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Text", color = Color.White, fontSize = 11.sp)
+        androidx.compose.foundation.text.BasicTextField(
+            value = text,
+            onValueChange = { onText(it.take(com.ps2gamepad.model.ButtonShape.MAX_LABEL)) },
+            singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(Palette.Info),
+            modifier = Modifier.width(90.dp).background(Color(0xFF2A2F3A), RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 5.dp).testTag("labelField"),
+            decorationBox = { inner ->
+                Box {
+                    if (text.isEmpty()) Text(placeholder, color = Color(0xFF7D8494), fontSize = 13.sp, maxLines = 1)
+                    inner()
+                }
+            },
+        )
+        if (text.isNotEmpty()) MapChip("Reset", false, "labelReset") { onText("") }
+        Text("Shape", color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(start = 6.dp))
+        for (s in com.ps2gamepad.model.ButtonShape.entries) {
+            val chosen = (shape ?: defaultShape) == s
+            MapChip("${s.icon} ${s.label}", chosen, "shape_${s.name}", fontSize = 11.sp) { onShape(if (s == defaultShape) null else s) }
         }
     }
 }

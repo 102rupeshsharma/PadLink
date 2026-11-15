@@ -701,6 +701,19 @@ class MainViewModel(
         }
     }
 
+    /** 3.11.0: own text for a button in the layout in use (blank = back to the normal label). */
+    fun setControlLabel(id: ControlId, text: String) {
+        if (id !in ControlId.customizable) return
+        val clean = com.ps2gamepad.model.ButtonShape.cleanLabel(text)
+        updateAppearance { it.copy(labels = if (clean == null) it.labels - id else it.labels + (id to clean)) }
+    }
+
+    /** 3.11.0: own shape for a button in the layout in use (null = the normal shape). */
+    fun setControlShape(id: ControlId, shape: com.ps2gamepad.model.ButtonShape?) {
+        if (id !in ControlId.customizable) return
+        updateAppearance { it.copy(shapes = if (shape == null) it.shapes - id else it.shapes + (id to shape)) }
+    }
+
     /** 3.8.0: hide or show a control in the layout in use (hidden = not drawn, cannot be pressed). */
     fun setControlHidden(id: ControlId, hidden: Boolean) {
         if (hidden) input.releaseAll() // nothing hidden may stay pressed

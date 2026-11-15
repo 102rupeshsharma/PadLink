@@ -24,6 +24,8 @@ enum class ControlId(val label: String) {
         val FACE_BUTTONS = listOf(TRIANGLE, CIRCLE, CROSS, SQUARE)
         /** Controls that are drawn and can be moved (everything except the legacy cluster). */
         val editable: List<ControlId> = entries.filter { it != FACE }
+        /** 3.11.0: buttons whose text and shape can be changed (not the D-pad or the sticks). */
+        val customizable: List<ControlId> = listOf(L1, L2, R1, R2, L3, R3, SELECT, START, TRIANGLE, CIRCLE, CROSS, SQUARE)
     }
 }
 
@@ -92,8 +94,14 @@ data class Appearance(
     val faceLabels: FaceLabels = FaceLabels.XBOX,
     /** 3.8.0: controls hidden in this layout (not drawn, cannot be pressed), e.g. L2 and R2. */
     val hidden: Set<ControlId> = emptySet(),
+    /** 3.11.0: own text per button (e.g. L1 → "JUMP"); missing = the normal label. Only the text changes. */
+    val labels: Map<ControlId, String> = emptyMap(),
+    /** 3.11.0: own shape per button; missing = the normal shape. Only the drawing changes, not the touch area. */
+    val shapes: Map<ControlId, ButtonShape> = emptyMap(),
 ) {
     fun isHidden(id: ControlId): Boolean = id in hidden
+    fun labelOf(id: ControlId): String? = labels[id]
+    fun shapeOf(id: ControlId): ButtonShape? = shapes[id]
 
     fun opacityOf(id: ControlId): Float =
         controlOpacity[id] ?: (if (id in ControlId.FACE_BUTTONS) controlOpacity[ControlId.FACE] else null) ?: 1f
@@ -106,11 +114,26 @@ data class Appearance(
         buttonSpacing = buttonSpacing.finiteOr(1f).coerceIn(0.8f, 1.3f),
         controlOpacity = controlOpacity.mapValues { it.value.finiteOr(1f).coerceIn(MIN_CONTROL_OPACITY, 1f) }.filterValues { it < 1f },
         hidden = hidden.filter { it in ControlId.editable }.toSet(),
+        labels = labels.filterKeys { it in ControlId.customizable }.mapValues { ButtonShape.cleanLabel(it.value) }
+            .filterValues { it != null }.mapValues { it.value!! },
+        shapes = shapes.filterKeys { it in ControlId.customizable },
     )
 
     companion object {
         /** Never fully invisible: a control you cannot see is a control you hit by accident. */
         const val MIN_CONTROL_OPACITY = 0.1f
+    }
+}
+
+/** 3.11.0: the outline of a button. Only the drawing changes; the touch area and the signal stay. */
+@Serializable
+enum class ButtonShape(val label: String, val icon: String) {
+    CIRCLE("Circle", "○"), SQUARE("Square", "□"), RECTANGLE("Rectangle", "▭");
+
+    companion object {
+        const val MAX_LABEL = 6
+        /** Trimmed, at most [MAX_LABEL] characters; blank = no own text (null). */
+        fun cleanLabel(text: String?): String? = text?.replace('\n', ' ')?.trim()?.take(MAX_LABEL)?.trim()?.takeIf { it.isNotEmpty() }
     }
 }
 
@@ -211,6 +234,9 @@ data class ExtraButton(
     val steps: List<ComboStep> = emptyList(),
     val stepMs: Int = DEFAULT_STEP_MS,
     val stickDirection: StickDirection? = null,
+    /** 3.11.0: own text (null = the normal label) and own shape (null = the normal shape). */
+    val label: String? = null,
+    val shape: ButtonShape? = null,
 ) {
     val isStickDirection: Boolean get() = stickDirection != null
     val isCombo: Boolean get() = steps.isNotEmpty() && stickDirection == null
@@ -224,6 +250,7 @@ data class ExtraButton(
         steps = steps.filterNot { it.isEmpty }.take(MAX_STEPS),
         stepMs = stepMs.coerceIn(MIN_STEP_MS, MAX_STEP_MS),
         stickDirection = stickDirection?.takeIf { it.isValid },
+        label = ButtonShape.cleanLabel(label),
     )
 
     companion object {
