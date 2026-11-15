@@ -19,7 +19,8 @@ Both downloads are at the [bottom of this page](#-download).
 - **Combo buttons**: press several buttons together (e.g. L1+R1), or play a sequence (e.g. ↓ ↘ → + X)
 - **Gyro aiming** for shooters: turn the phone to aim. Switch it with **Gyro ON/OFF** in the controller's ☰ menu
 - **Pure black background**: on AMOLED phones black pixels are switched off, which saves battery
-- Move, resize and add buttons freely, with up to 5 **loadouts** (one per game)
+- Move, resize, add and **hide** buttons freely, with up to **10 loadouts** (one per game, each with its own settings)
+- **Stick direction buttons** (↖ ↗ ↙ ↘ and ↑ ↓ ← →) for both sticks, for emulators that bind each direction (e.g. 3DS)
 - **Two players**: two phones on one PC, e.g. Mortal Kombat player 1 vs player 2 ([guide](#-two-players-two-phones-one-pc))
 
 ## ⚡ In 30 seconds
@@ -134,22 +135,31 @@ is saved to the loadout in use):
 | **Game dead-zone fix** | Raise it if small gyro movements do nothing; lower it if the camera creeps by itself |
 | **Up/down speed**, **Invert** | Gyro up/down speed, and flipping the gyro directions |
 | **Battery saver** | ON = 60 Hz screen and fewer stick updates (buttons stay instant). Less battery and heat |
+| **Buttons on screen** | Tap to hide or show any control in this layout (e.g. hide L2 and R2). Hidden = not drawn and cannot be pressed |
 | **Opacity**, **Button size**, **Joystick size** | Make all buttons more see-through, bigger or smaller |
 
 Scroll down inside the Settings panel to see everything. Tap **Close** to go back to playing.
 
 ### Step 6: Make it yours (optional)
 
-- **Button look:** **Settings → Button style**: Real, Simple or Outline. **Face buttons**: Y B A X
-  or △ ○ ✕ □. Your emulator bindings don't change.
+- **Button look:** **Settings → Button style**: Real, Simple, Outline or Glossy. **Face buttons**:
+  △ ○ ✕ □, Y B A X or X A B Y. Your emulator bindings don't change.
 - **Move or resize buttons:** **Edit** → drag a button. Tap it, then drag the **blue corner** to resize.
   Buttons may overlap. Press **Save**.
 - **Add an extra button:** **Edit → + Button**, then choose what it presses (e.g. a second Cross).
 - **Combo button:** **Edit → + Combo**. Pick buttons for step 1. For a sequence, tap **+ Step**
   and pick the next buttons/direction. See [Combo buttons](#-combo-buttons).
+- **Stick direction button:** **Edit → + Stick ↗**, then pick **Left stick** or **Right stick** and a
+  direction (↖ ↗ ↙ ↘ ↑ ↓ ← →). While you hold it, that stick is pushed fully in that direction (a
+  diagonal pushes both axes fully). Use it when an emulator (for example a 3DS emulator) asks you to set
+  **Up-Left / Up-Right / Down-Left / Down-Right** for a stick: click the slot in the emulator, press the
+  button. Releasing it gives the stick back to your thumb.
+- **Hide a button you don't need:** **Settings → Buttons on screen** → tap it (e.g. L2, R2). Or in
+  **Edit**, tap the control → **Hide**. Show it again in Settings.
 - **Delete an added button or combo:** **Edit** → tap it → red **✕** → **Save**.
-- **One setup per game:** **Open Controller → New loadout** (up to 5). Each keeps its own layout,
-  style, combos and gyro.
+- **One setup per game:** **Open Controller → New loadout** (up to **10**). Each keeps its own layout,
+  hidden buttons, button style, face labels (e.g. △ ○ ✕ □ in one, Y B A X in another), sizes, combos,
+  stick direction buttons and gyro. A new loadout starts as a copy of the one you are using.
 
 ### Updating PadLink
 
@@ -304,11 +314,15 @@ many PS2 games do; some PC ports are single-player only, and no controller can c
 | ![Glossy PlayStation](docs/screenshots/11f_controller_glossy_playstation.png) | ![Glossy Switch](docs/screenshots/11g_controller_glossy_switch.png) |
 | **The ☰ menu while playing** | **Style tiles in Settings (live preview)** |
 | ![Menu](docs/screenshots/20_quick_menu.png) | ![Style tiles](docs/screenshots/08b_settings_style_tiles.png) |
+| **L2 / R2 hidden, stick diagonal buttons** | **Making a stick direction button (Edit)** |
+| ![Hidden and diagonals](docs/screenshots/21_hidden_and_diagonals.png) | ![Stick direction editor](docs/screenshots/22_edit_stick_direction.png) |
+| **Buttons on screen (Settings)** | |
+| ![Buttons on screen](docs/screenshots/23_settings_buttons_on_screen.png) | |
 
 ---
 
-**Version 3.7.1** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 337 automated tests (334 passed,
-3 skipped). PC: 74 automated tests (all passed).
+**Version 3.8.0** (phone) and **PadLink Bridge 1.2.0** (PC). Phone: 354 automated tests (353 passed,
+1 skipped). PC: 74 automated tests (all passed).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
 - PadLink Bridge on the developer's PC with the real driver and the phone: Xbox mode on/off, and two Xbox
@@ -395,13 +409,13 @@ In the controller tap **Edit → + Combo**, then choose what the combo presses:
   two analog sticks. Full multi-touch with per-finger tracking.
 - **Button styles:** Real, Simple or Outline, and Y B A X or △ ○ ✕ □ labels. Only the look changes:
   every style sends the same buttons, so emulator bindings stay.
-- **Combo buttons:** pressed together or played as a sequence (see above). Up to 12 added buttons and
-  combos per loadout, 8 steps per combo.
+- **Combo buttons:** pressed together or played as a sequence (see above). Up to 16 added buttons,
+  combos and stick direction buttons per loadout, 8 steps per combo.
 - **Never-stuck inputs:** everything is released on lift, cancel, app pause, focus loss,
   notification shade, back, loadout switch, layout editing, Bluetooth off and connection loss.
   A failed report is retried with the current state.
-- **Loadouts (up to 5):** one saved setup per game. Each keeps its own layout, sizes, opacity,
-  button style, sticks and combo buttons.
+- **Loadouts (up to 10):** one saved setup per game. Each keeps its own layout, hidden buttons, sizes,
+  opacity, button style, face labels, sticks, gyro, combo and stick direction buttons.
 - **Layout editor:** drag any control, resize it with the blue corner handle, overlap allowed,
   extra buttons (a second Cross, for example) and combos. Layouts adapt to any screen size.
 - **Gyro aiming (right stick):** rotation speed to stick, game dead-zone fix, tiered smoothing (no
@@ -455,12 +469,12 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.7.1, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.8.0, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `b742a81d477b277ef010188d37f0d89f3d986e55d3f2c25e2c9107d92729bef8`
+SHA-256: `84e9aa5d1d4fcf154aef4eec99b7a8b5ef74b9295ac1261115c8025cec09157b`
 
 ### 💻 2. PC app: only for PC games and ports
 

@@ -428,6 +428,54 @@ fun ComboButton(
     }
 }
 
+/**
+ * 3.8.0: pushes a stick fully in one direction while held (e.g. "L↖"). Several fingers / buttons
+ * combine in the input manager; releasing returns the stick to the thumb. Released when the screen
+ * changes or inputs are reset.
+ */
+@Composable
+fun StickDirectionButton(
+    id: String,
+    direction: com.ps2gamepad.model.StickDirection,
+    input: ControllerInputManager,
+    resetKey: Int,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier,
+) {
+    var pressed by remember(resetKey) { mutableStateOf(false) }
+    val haptic = rememberHaptic()
+    val style = LocalControlStyle.current
+    val neu = LocalNeu.current
+    val source = "stickdir_$id"
+    DisposableEffect(resetKey, direction) {
+        onDispose { if (style.interactive) input.setStickPushFrom(source, direction.stick, null) }
+    }
+    Box(
+        modifier.inputIfInteractive(resetKey) { pointers, t ->
+            val now = pointers.isNotEmpty()
+            input.reportPointers(source, pointers.size)
+            if (now != pressed) {
+                pressed = now
+                input.setStickPushFrom(source, direction.stick, if (now) StickVector(direction.x, direction.y) else null, t)
+                if (now) haptic()
+            }
+        },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val d = neuDepth(size)
+            neuPath(circlePath(center, size.minDimension / 2 - d * 0.8f), neu, pressed, d, accent = STICK_DIR_COLOR, style = style.buttonStyle)
+        }
+        if (style.showLabels) {
+            Text(direction.label, color = if (style.buttonStyle == ButtonStyle.REAL || style.buttonStyle == ButtonStyle.GLOSSY) STICK_DIR_COLOR else neu.label,
+                fontSize = fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
+        }
+    }
+}
+
+/** Ring colour of stick-direction buttons. */
+val STICK_DIR_COLOR = Color(0xFF5AC8FA)
+
 /** Ring colour of combo buttons (so they stand out from normal buttons). */
 val COMBO_COLOR = Color(0xFFB794F6)
 private const val MIN_COMBO_GAP_MS = 20

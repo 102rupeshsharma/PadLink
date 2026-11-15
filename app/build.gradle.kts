@@ -15,8 +15,8 @@ android {
         applicationId = "com.ps2gamepad"
         minSdk = 28 // BluetoothHidDevice was added in API 28
         targetSdk = 35
-        versionCode = 26
-        versionName = "3.7.1"
+        versionCode = 27
+        versionName = "3.8.0"
     }
 
     // Release signing comes from keystore.properties (git-ignored, never committed).

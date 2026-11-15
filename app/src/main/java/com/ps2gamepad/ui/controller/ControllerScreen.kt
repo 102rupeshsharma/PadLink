@@ -227,28 +227,32 @@ fun ControllerLayout(
                 Triple(ControlId.L2, ControllerButton.L2, "L2"), Triple(ControlId.L1, ControllerButton.L1, "L1"),
                 Triple(ControlId.R2, ControllerButton.R2, "R2"), Triple(ControlId.R1, ControllerButton.R1, "R1"),
             )) {
+                if (a.isHidden(id)) continue // 3.8.0: hidden in this layout
                 val label = when (id) { ControlId.L2 -> skin.labelL2; ControlId.L1 -> skin.labelL1; ControlId.R2 -> skin.labelR2; else -> skin.labelR1 }
                 DigitalButton(b, input, epoch, label, KeyShape.ROUNDED, fs(id, 0.36f), Modifier.at(id).testTag("btn_$tag"))
             }
 
-            DpadControl(input, epoch, Modifier.at(ControlId.DPAD).testTag("dpad"))
+            if (!a.isHidden(ControlId.DPAD)) DpadControl(input, epoch, Modifier.at(ControlId.DPAD).testTag("dpad"))
             // 1.9.0: four independent buttons (move, resize and overlap each one on its own)
             ControlId.FACE_BUTTONS.forEachIndexed { i, id ->
+                if (a.isHidden(id)) return@forEachIndexed
                 val b = when (id) { ControlId.TRIANGLE -> ControllerButton.TRIANGLE; ControlId.CIRCLE -> ControllerButton.CIRCLE; ControlId.CROSS -> ControllerButton.CROSS; else -> ControllerButton.SQUARE }
                 DigitalButton(b, input, epoch, b.label, KeyShape.CIRCLE, fs(id, 0.42f), Modifier.at(id).testTag("btn_${b.name}"), faceIndex = i)
             }
-            AnalogStick(Stick.LEFT, input, epoch, profile.left, Modifier.at(ControlId.LEFT_STICK).testTag("stick_left"))
-            AnalogStick(Stick.RIGHT, input, epoch, profile.right, Modifier.at(ControlId.RIGHT_STICK).testTag("stick_right"))
-            DigitalButton(ControllerButton.L3, input, epoch, skin.labelL3, KeyShape.CIRCLE, fs(ControlId.L3, 0.3f), Modifier.at(ControlId.L3).testTag("btn_L3"))
-            DigitalButton(ControllerButton.R3, input, epoch, skin.labelR3, KeyShape.CIRCLE, fs(ControlId.R3, 0.3f), Modifier.at(ControlId.R3).testTag("btn_R3"))
-            DigitalButton(ControllerButton.SELECT, input, epoch, skin.labelSelect, KeyShape.PILL, fs(ControlId.SELECT, 0.34f), Modifier.at(ControlId.SELECT).testTag("btn_SELECT"))
-            DigitalButton(ControllerButton.START, input, epoch, skin.labelStart, KeyShape.PILL, fs(ControlId.START, 0.34f), Modifier.at(ControlId.START).testTag("btn_START"))
+            if (!a.isHidden(ControlId.LEFT_STICK)) AnalogStick(Stick.LEFT, input, epoch, profile.left, Modifier.at(ControlId.LEFT_STICK).testTag("stick_left"))
+            if (!a.isHidden(ControlId.RIGHT_STICK)) AnalogStick(Stick.RIGHT, input, epoch, profile.right, Modifier.at(ControlId.RIGHT_STICK).testTag("stick_right"))
+            if (!a.isHidden(ControlId.L3)) DigitalButton(ControllerButton.L3, input, epoch, skin.labelL3, KeyShape.CIRCLE, fs(ControlId.L3, 0.3f), Modifier.at(ControlId.L3).testTag("btn_L3"))
+            if (!a.isHidden(ControlId.R3)) DigitalButton(ControllerButton.R3, input, epoch, skin.labelR3, KeyShape.CIRCLE, fs(ControlId.R3, 0.3f), Modifier.at(ControlId.R3).testTag("btn_R3"))
+            if (!a.isHidden(ControlId.SELECT)) DigitalButton(ControllerButton.SELECT, input, epoch, skin.labelSelect, KeyShape.PILL, fs(ControlId.SELECT, 0.34f), Modifier.at(ControlId.SELECT).testTag("btn_SELECT"))
+            if (!a.isHidden(ControlId.START)) DigitalButton(ControllerButton.START, input, epoch, skin.labelStart, KeyShape.PILL, fs(ControlId.START, 0.34f), Modifier.at(ControlId.START).testTag("btn_START"))
             if (extras.isNotEmpty()) BoxWithConstraints(Modifier.fillMaxSize()) {
                 val cw = maxWidth.value
                 val ch = maxHeight.value
                 for (e in extras) {
                     val r = extraRect(e, cw, ch, a)
-                    if (e.isCombo) {
+                    if (e.stickDirection != null) {
+                        StickDirectionButton(e.id, e.stickDirection, input, epoch, (r.h * 0.34f).sp, Modifier.place(r).testTag("extra_${e.id}"))
+                    } else if (e.isCombo) {
                         val label = comboLabel(e, a.faceLabels)
                         ComboButton(e, input, epoch, label, (r.h * if (label.length > 6) 0.24f else 0.32f).sp, Modifier.place(r).testTag("extra_${e.id}"))
                     } else {
@@ -288,6 +292,7 @@ private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float
     // Invisible touch handles on top of each control: the control itself moves under the finger.
     // Only the selected control gets a thin outline in its own shape (no boxes around everything).
     for (id in ControlId.editable) {
+        if (profile.appearance.isHidden(id)) continue // hidden in this layout: nothing to grab
         val rect = draft.getValue(id)
         Box(
             Modifier.place(rect)
@@ -416,6 +421,15 @@ private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float
                 selectedExtra = e.id; selected = null
                 message = "Button added: drag it into place, then choose what it presses"
             }
+            if (extras.size < ControllerProfile.MAX_EXTRA_BUTTONS) SmallChipButton("+ Stick ↗") {
+                val e = ExtraButton(
+                    java.util.UUID.randomUUID().toString().take(6), ControllerButton.CROSS, 0.5f, 0.45f,
+                    stickDirection = com.ps2gamepad.model.StickDirection(Stick.LEFT, com.ps2gamepad.model.Hat.UP_LEFT),
+                )
+                extras = extras + e
+                selectedExtra = e.id; selected = null
+                message = "Stick direction added: pick the stick and the direction (↖ ↗ ↙ ↘ for emulators that ask for diagonals)"
+            }
             if (extras.size < ControllerProfile.MAX_EXTRA_BUTTONS) SmallChipButton("+ Combo") {
                 val e = ExtraButton(
                     java.util.UUID.randomUUID().toString().take(6), ControllerButton.CROSS, 0.5f, 0.3f,
@@ -427,7 +441,31 @@ private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float
             }
         }
         val selX = extras.firstOrNull { it.id == selectedExtra }
-        if (selX != null && selX.isCombo) {
+        val selDir = selX?.stickDirection
+        if (selX != null && selDir != null) {
+            Column(
+                Modifier.padding(top = 4.dp).background(Color(0xE6000000), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp).testTag("stickDirEditor"),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                fun change(d: com.ps2gamepad.model.StickDirection) { extras = extras.map { if (it.id == selX.id) it.copy(stickDirection = d) else it } }
+                Text("While held, pushes the ${if (selDir.stick == Stick.LEFT) "left" else "right"} stick ${selDir.dir.label.lowercase()} (${selDir.label})", color = Color.White, fontSize = 11.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 3.dp)) {
+                    MapChip("Left stick", selDir.stick == Stick.LEFT, "dir_stick_LEFT") { change(selDir.copy(stick = Stick.LEFT)) }
+                    MapChip("Right stick", selDir.stick == Stick.RIGHT, "dir_stick_RIGHT") { change(selDir.copy(stick = Stick.RIGHT)) }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 3.dp)) {
+                    for (h in com.ps2gamepad.model.StickDirection.ORDER) {
+                        MapChip(com.ps2gamepad.model.StickDirection.ARROWS.getValue(h), selDir.dir == h, "dir_${h.name}", fontSize = 14.sp) { change(selDir.copy(dir = h)) }
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Size ${(selX.scale * 100).toInt()} %", color = Color.White, fontSize = 11.sp, modifier = Modifier.width(90.dp))
+                    Slider(value = selX.scale, valueRange = 0.5f..2f, modifier = Modifier.width(200.dp).testTag("extraSize"),
+                        onValueChange = { v -> extras = extras.map { if (it.id == selX.id) it.copy(scale = v) else it } })
+                    MapChip("Delete", false, "extra_delete") { extras = extras.filter { it.id != selX.id }; selectedExtra = null; message = "Button removed (press Save to keep)" }
+                }
+            }
+        } else if (selX != null && selX.isCombo) {
             ComboEditor(selX, profile.appearance.faceLabels, comboStep, onStep = { comboStep = it }) { f -> extras = extras.map { if (it.id == selX.id) f(it) else it } }
         } else if (selX != null) {
             Column(
@@ -455,7 +493,11 @@ private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float
                 Modifier.padding(top = 4.dp).background(Color(0xE6000000), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("${sel.label} size ${(scale * 100).toInt()} %", color = Color.White, fontSize = 11.sp, modifier = Modifier.width(140.dp))
+                MapChip("Hide", false, "hide_control") {
+                    vm.setControlHidden(sel, true); selected = null
+                    message = "${sel.label} hidden in this layout. Show it again: ☰ → Settings → Buttons on screen"
+                }
+                Text("${sel.label} size ${(scale * 100).toInt()} %", color = Color.White, fontSize = 11.sp, modifier = Modifier.width(140.dp).padding(start = 6.dp))
                 Slider(
                     value = scale, valueRange = 0.5f..2f, modifier = Modifier.width(200.dp).testTag("sizeSlider"),
                     onValueChange = { sc ->
@@ -541,7 +583,10 @@ private fun ControllerSettingsPanel(vm: MainViewModel, profile: ControllerProfil
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Controller settings", color = neu.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Column(Modifier.weight(1f)) {
+                Text("Controller settings", color = neu.text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("Saved to this layout: ${profile.name}", color = neu.textDim, fontSize = 11.sp, modifier = Modifier.testTag("settingsLayoutName"))
+            }
             SmallChipButton("Close") { onClose() }
         }
         // 3.7.0: every choice is a tile that draws the real button, and the controller behind updates live
@@ -559,6 +604,19 @@ private fun ControllerSettingsPanel(vm: MainViewModel, profile: ControllerProfil
             ) { vm.updateAppearance { it.copy(faceLabels = fl) } }
         }
         Text("Only the labels change: the buttons send the same signals, so emulator bindings stay.", color = neu.textDim, fontSize = 11.sp)
+        // 3.8.0: show / hide controls in this layout (e.g. no L2 / R2)
+        Text("Buttons on screen", color = neu.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        val faceNames = (0..3).associate { ControlId.FACE_BUTTONS[it] to FaceColors.text(a.faceLabels, it) }
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            for (id in ControlId.editable) {
+                val shown = !a.isHidden(id)
+                MapChip((if (shown) "✓ " else "") + (faceNames[id] ?: id.label), shown, "show_${id.name}") { vm.setControlHidden(id, shown) }
+            }
+        }
+        Text("Tap to hide or show. Hidden controls are not drawn and cannot be pressed. Each layout keeps its own choice.", color = neu.textDim, fontSize = 11.sp)
         val g = profile.gyroAim
         Text("Gyro aim" + if (g.enabled) " (ON)" else " (OFF: turn on with Gyro in the ☰ menu)", color = neu.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Text("Turn the phone to aim: how fast you turn = how fast the camera turns. Stop and it stops.", color = neu.textDim, fontSize = 11.sp)

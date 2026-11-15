@@ -51,7 +51,7 @@ class ExtraButtonModelTest {
     }
 
     @Test fun extrasAreSanitizedLimitedAndStored() {
-        val many = (0 until 12).map { ExtraButton("e$it", ControllerButton.L3, cx = 2f, cy = Float.NaN, scale = 9f) } + ExtraButton("e0", ControllerButton.R3)
+        val many = (0 until ControllerProfile.MAX_EXTRA_BUTTONS + 3).map { ExtraButton("e$it", ControllerButton.L3, cx = 2f, cy = Float.NaN, scale = 9f) } + ExtraButton("e0", ControllerButton.R3)
         val s = ProfileManager.updateActive(DefaultProfiles.store()) { it.copy(extraButtons = many) }
         val back = ProfileCodec.decode(ProfileCodec.encode(s)).active.extraButtons
         assertEquals(ControllerProfile.MAX_EXTRA_BUTTONS, back.size)

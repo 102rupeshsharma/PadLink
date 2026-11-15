@@ -45,7 +45,7 @@ fun ProfilesScreen(vm: MainViewModel) {
 
     ScreenFrame("Profiles", onBack = { vm.navigate(Screen.HOME) }, actions = {
         val canCreate = com.ps2gamepad.settings.ProfileManager.canCreateLoadout(store)
-        ActionButton(if (canCreate) "New profile" else "Limit: 5 loadouts", enabled = canCreate) { dialog = ProfileDialog.Create }
+        ActionButton(if (canCreate) "New profile" else "Limit: ${com.ps2gamepad.settings.ProfileManager.MAX_LOADOUTS} loadouts", enabled = canCreate) { dialog = ProfileDialog.Create }
     }) {
         Text(
             "Profiles change layout, look and analog response only. Every profile sends the same standard HID buttons, " +

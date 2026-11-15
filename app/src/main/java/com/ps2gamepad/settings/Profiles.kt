@@ -55,7 +55,7 @@ object DefaultProfiles {
 object ProfileManager {
 
     /** User loadouts (non-built-in profiles) are limited to this number. */
-    const val MAX_LOADOUTS = 5
+    const val MAX_LOADOUTS = 10
 
     fun loadouts(s: ProfileStore): List<ControllerProfile> = s.profiles.filter { !it.builtIn }
     fun canCreateLoadout(s: ProfileStore): Boolean = loadouts(s).size < MAX_LOADOUTS
