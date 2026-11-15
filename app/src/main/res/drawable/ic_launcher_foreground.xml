@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PS5 (DualSense) style controller, drawn inside the 66dp safe zone of the 108dp adaptive icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="54"
+        android:scaleX="0.86" android:scaleY="0.86" android:translateY="-3">
+        <!-- Body with flared grips -->
+        <path android:fillColor="#FF1C1E24"
+            android:pathData="M38,35H70C78,35 83,38 85,45L90,66C92,74 86,80 80,76L72,68C68,64 64,63 60,63H48C44,63 40,64 36,68L28,76C22,80 16,74 18,66L23,45C25,38 30,35 38,35Z" />
+        <!-- Touchpad -->
+        <path android:fillColor="#FF3A3E48"
+            android:pathData="M42,37H66V49.5C66,51.5 64.5,53 62.5,53H45.5C43.5,53 42,51.5 42,49.5Z" />
+        <!-- Light bar along both sides of the touchpad -->
+        <path android:fillColor="#FF3B8BFF" android:pathData="M39.6,39.5h1.2v11h-1.2z" />
+        <path android:fillColor="#FF3B8BFF" android:pathData="M67.2,39.5h1.2v11h-1.2z" />
+        <!-- D-pad -->
+        <path android:fillColor="#FFC9CCD3"
+            android:pathData="M30.5,43h3v3.5h3.5v3h-3.5v3.5h-3v-3.5h-3.5v-3h3.5z" />
+        <!-- Face buttons: triangle, circle, cross, square -->
+        <path android:strokeColor="#FF3FD1B0" android:strokeWidth="1"
+            android:strokeLineJoin="round" android:fillColor="#00000000"
+            android:pathData="M77,40.6L79.2,44.4H74.8Z" />
+        <path android:strokeColor="#FFFF5A6E" android:strokeWidth="1" android:fillColor="#00000000"
+            android:pathData="M82,46.2m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+        <path android:strokeColor="#FF7FB2FF" android:strokeWidth="1" android:strokeLineCap="round"
+            android:pathData="M75.2,49.6L78.8,53.2M78.8,49.6L75.2,53.2" />
+        <path android:strokeColor="#FFF08CD0" android:strokeWidth="1" android:fillColor="#00000000"
+            android:pathData="M70.2,44.4h3.6v3.6h-3.6z" />
+        <!-- Thumbsticks -->
+        <path android:fillColor="#FF4A4F5A"
+            android:pathData="M44,58m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+        <path android:fillColor="#FF0E0F12"
+            android:pathData="M44,58m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        <path android:fillColor="#FF4A4F5A"
+            android:pathData="M64,58m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+        <path android:fillColor="#FF0E0F12"
+            android:pathData="M64,58m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        <!-- PS button -->
+        <path android:fillColor="#FF8A8F99"
+            android:pathData="M54,57.5m-1.6,0a1.6,1.6 0,1 1,3.2 0a1.6,1.6 0,1 1,-3.2 0" />
+    </group>
+</vector>

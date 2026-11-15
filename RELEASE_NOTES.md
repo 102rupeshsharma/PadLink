@@ -1,5 +1,12 @@
 # Release notes
 
+## PadLink 3.11.1 (versionCode 32), 2026-11-15: new app icon
+
+- **App icon** (requested with a screenshot): the old icon was a plain picture, so the launcher shrank it
+  into its circle and a black square showed inside. It is now an adaptive icon: white background like the
+  other apps, filled edge to edge by the launcher, with a PS5-style controller (touchpad, light bar, D-pad,
+  △ ○ ✕ □, two sticks) inside the safe zone. No code changes.
+
 ## PadLink 3.11.0 (versionCode 31), 2026-11-16: your own button text, shapes, delete any button
 
 - **Own text** (requested): Edit → tap a button → **Text**, up to 6 characters (e.g. L1 → "JUMP"); **Reset**
