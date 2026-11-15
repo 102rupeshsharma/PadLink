@@ -75,5 +75,34 @@ object HidDescriptor {
         0xC0,                   // End Collection
     )
 
+    // ------------------------------------------------------------------ 3.9.0: diagonal buttons (opt-in)
+
+    /** 8 extra buttons, one per stick diagonal: left ↖ ↗ ↙ ↘ = buttons 13-16, right ↖ ↗ ↙ ↘ = 17-20. */
+    const val DIAGONAL_COUNT: Int = 8
+    const val FIRST_DIAGONAL_BUTTON: Int = BUTTON_COUNT + 1
+    /** Report length with the diagonal byte appended after the axes. */
+    const val REPORT_LENGTH_EXTENDED: Int = REPORT_LENGTH + 1
+
+    /**
+     * The same descriptor with 8 more buttons APPENDED after the axes. Everything the standard one has
+     * keeps its exact place and number (buttons 1-12, hat, X/Y/Z/Rz = axes 0-3), so existing emulator
+     * mappings stay. Only used when the user turns on "Diagonal buttons for emulators"; Windows reads a
+     * descriptor at pairing, so switching it needs pairing again once.
+     */
+    val REPORT_DESCRIPTOR_EXTENDED: ByteArray = REPORT_DESCRIPTOR.copyOfRange(0, REPORT_DESCRIPTOR.size - 1) + bytes(
+        0x05, 0x09,             //   Usage Page (Button)
+        0x19, FIRST_DIAGONAL_BUTTON, //   Usage Minimum (Button 13)
+        0x29, BUTTON_COUNT + DIAGONAL_COUNT, // Usage Maximum (Button 20)
+        0x15, 0x00,             //   Logical Minimum (0)
+        0x25, 0x01,             //   Logical Maximum (1)
+        0x75, 0x01,             //   Report Size (1 bit)
+        0x95, DIAGONAL_COUNT,   //   Report Count (8)
+        0x81, 0x02,             //   Input (Data, Variable, Absolute)
+        0xC0,                   // End Collection
+    )
+
+    fun descriptor(extended: Boolean): ByteArray = if (extended) REPORT_DESCRIPTOR_EXTENDED else REPORT_DESCRIPTOR
+    fun reportLength(extended: Boolean): Int = if (extended) REPORT_LENGTH_EXTENDED else REPORT_LENGTH
+
     private fun bytes(vararg v: Int) = ByteArray(v.size) { v[it].toByte() }
 }

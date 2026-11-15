@@ -67,6 +67,22 @@ class ControllerInputManager(
     /** State the host last received; null = unknown, so the next change is always sent. */
     private var lastSent: GamepadState? = null
 
+    /** 3.9.0: send the extended report (diagonal byte) - set from the "Diagonal buttons" setting. */
+    @Volatile var extendedReports: Boolean = false
+
+    /** Which controls hold each diagonal button (index 0-7). */
+    private val diagonalHolders = HashMap<Int, MutableSet<String>>()
+
+    /** A diagonal button (0 = left ↖ … 7 = right ↘) pressed / released by [source]. */
+    fun setDiagonalFrom(source: String, index: Int, pressed: Boolean, eventUptimeMs: Long = clock()) {
+        if (index !in 0 until com.ps2gamepad.bluetooth.HidDescriptor.DIAGONAL_COUNT) return
+        synchronized(lock) {
+            val set = diagonalHolders.getOrPut(index) { HashSet() }
+            if (pressed) set.add(source) else set.remove(source)
+            mutate(eventUptimeMs) { it.withDiagonal(index, set.isNotEmpty()) }
+        }
+    }
+
     /** Which controls currently hold each button (the built-in control and any extra buttons). */
     private val holders = HashMap<ControllerButton, MutableSet<String>>()
 
@@ -173,6 +189,7 @@ class ControllerInputManager(
             pointerCounts.clear()
             holders.clear()
             dpadHolders.clear()
+            diagonalHolders.clear()
             touchRight = StickVector.ZERO
             gyroRight = StickVector.ZERO
             touchLeft = StickVector.ZERO
@@ -207,7 +224,7 @@ class ControllerInputManager(
 
     private fun shouldSend(prev: GamepadState?, next: GamepadState): Boolean {
         if (prev == null) return true
-        if (prev.buttons != next.buttons || prev.dpad.hat != next.dpad.hat) return true
+        if (prev.buttons != next.buttons || prev.dpad.hat != next.dpad.hat || prev.diagonals != next.diagonals) return true
         return StickMath.axisChangedSignificantly(prev.leftX, next.leftX, axisThreshold) ||
             StickMath.axisChangedSignificantly(prev.leftY, next.leftY, axisThreshold) ||
             StickMath.axisChangedSignificantly(prev.rightX, next.rightX, axisThreshold) ||
@@ -216,7 +233,7 @@ class ControllerInputManager(
 
     private fun trySend(state: GamepadState, eventUptimeMs: Long) {
         val t0 = System.nanoTime()
-        val report = HidReportManager.encode(state)
+        val report = HidReportManager.encode(state, extendedReports)
         val accepted = sink.send(report, eventUptimeMs)
         if (accepted) timing.record(System.nanoTime() - t0)
         if (accepted) {

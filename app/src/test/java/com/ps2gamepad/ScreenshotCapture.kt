@@ -113,6 +113,10 @@ class ScreenshotCapture {
         rule.runOnIdle { vm.setEditMode(true) }
         rule.onNodeWithTag("editx_d1").performClick()
         shoot("22_edit_stick_direction")
+        rule.onNodeWithTag("dir_mode_button").performClick() // 3.9.0: own button for emulator diagonal slots
+        rule.runOnIdle { vm.setDiagonalButtons(true) }
+        shoot("24_edit_diagonal_own_button")
+        rule.runOnIdle { vm.setDiagonalButtons(false) }
         rule.runOnIdle { vm.setEditMode(false) }
         rule.onNodeWithTag("menuButton").performClick()
         rule.onNodeWithTag("chip_Settings").performClick()

@@ -274,6 +274,7 @@ fun ControllerLayout(
  */
 @Composable
 private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float, h: Float) {
+    val store by vm.profiles.collectAsStateWithLifecycle()
     val defaults = remember(w, h, profile.appearance) { LayoutEngine.defaults(w, h, profile.appearance) }
     // Read through the State object in gesture callbacks: they can run several times between
     // recompositions, so a captured/updated-on-recompose copy would be stale (drops were lost).
@@ -448,10 +449,31 @@ private fun LayoutEditor(vm: MainViewModel, profile: ControllerProfile, w: Float
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 fun change(d: com.ps2gamepad.model.StickDirection) { extras = extras.map { if (it.id == selX.id) it.copy(stickDirection = d) else it } }
-                Text("While held, pushes the ${if (selDir.stick == Stick.LEFT) "left" else "right"} stick ${selDir.dir.label.lowercase()} (${selDir.label})", color = Color.White, fontSize = 11.sp)
+                val stickName = if (selDir.stick == Stick.LEFT) "left" else "right"
+                Text(
+                    if (selDir.ownButton && store.diagonalButtons && selDir.diagonalIndex != null)
+                        "While held, sends ${selDir.emulatorButtonName} (${stickName} stick ${selDir.dir.label.lowercase()}, ${selDir.label})"
+                    else "While held, pushes the $stickName stick ${selDir.dir.label.lowercase()} (${selDir.label})",
+                    color = Color.White, fontSize = 11.sp,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 3.dp)) {
                     MapChip("Left stick", selDir.stick == Stick.LEFT, "dir_stick_LEFT") { change(selDir.copy(stick = Stick.LEFT)) }
                     MapChip("Right stick", selDir.stick == Stick.RIGHT, "dir_stick_RIGHT") { change(selDir.copy(stick = Stick.RIGHT)) }
+                }
+                if (selDir.diagonalIndex != null) {
+                    val on = store.diagonalButtons
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 3.dp)) {
+                        MapChip("Moves the stick", !selDir.ownButton, "dir_mode_stick") { change(selDir.copy(ownButton = false)) }
+                        MapChip("Own button (${selDir.emulatorButtonName})", selDir.ownButton, "dir_mode_button") { change(selDir.copy(ownButton = true)) }
+                    }
+                    Text(
+                        when {
+                            !selDir.ownButton -> "Works in every game. For an emulator's Up-Left/Up-Right/Down-Left/Down-Right slots, choose Own button."
+                            on -> "Sends ${selDir.emulatorButtonName} only: bind it in the emulator's ${selDir.dir.label} slot."
+                            else -> "Turn on ☰ → Settings → Diagonal buttons for emulators first (until then it moves the stick)."
+                        },
+                        color = if (selDir.ownButton && !on) Palette.Warn else Color(0xFFB7BCCB), fontSize = 10.sp, modifier = Modifier.testTag("dir_mode_hint"),
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 3.dp)) {
                     for (h in com.ps2gamepad.model.StickDirection.ORDER) {
@@ -567,6 +589,7 @@ private fun LiveOverlay(vm: MainViewModel, modifier: Modifier) {
  */
 @Composable
 private fun ControllerSettingsPanel(vm: MainViewModel, profile: ControllerProfile, saver: Boolean, modifier: Modifier, onClose: () -> Unit) {
+    val store by vm.profiles.collectAsStateWithLifecycle()
     val a = profile.appearance
     val neu = LocalNeu.current
     Column(
@@ -617,6 +640,18 @@ private fun ControllerSettingsPanel(vm: MainViewModel, profile: ControllerProfil
             }
         }
         Text("Tap to hide or show. Hidden controls are not drawn and cannot be pressed. Each layout keeps its own choice.", color = neu.textDim, fontSize = 11.sp)
+        // 3.9.0: diagonal buttons (all layouts, opt-in)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Diagonal buttons for emulators", color = neu.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            MapChip(if (store.diagonalButtons) "ON" else "OFF", store.diagonalButtons, "set_diagonals") { vm.setDiagonalButtons(!store.diagonalButtons) }
+        }
+        Text(
+            "Gives each stick diagonal its own button for emulators with Up-Left / Up-Right / Down-Left / Down-Right slots " +
+                "(e.g. 3DS): left ↖ ↗ ↙ ↘ = Button 12-15, right ↖ ↗ ↙ ↘ = Button 16-19. Your other mappings stay. " +
+                "All layouts. After switching: on the PC remove PadLink and pair again once, then Connect. " +
+                "Then in Edit set a stick direction button to Own button.",
+            color = neu.textDim, fontSize = 11.sp, modifier = Modifier.testTag("diagonalsHint"),
+        )
         val g = profile.gyroAim
         Text("Gyro aim" + if (g.enabled) " (ON)" else " (OFF: turn on with Gyro in the ☰ menu)", color = neu.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Text("Turn the phone to aim: how fast you turn = how fast the camera turns. Stop and it stops.", color = neu.textDim, fontSize = 11.sp)
