@@ -86,8 +86,13 @@ data class GamepadState(
     val leftY: Int = 0,
     val rightX: Int = 0,
     val rightY: Int = 0,
+    /** 3.9.0: the 8 diagonal buttons (bit 0 = left ↖ … bit 7 = right ↘); only sent in the extended report. */
+    val diagonals: Int = 0,
 ) {
     fun isPressed(button: ControllerButton): Boolean = (buttons and button.mask) != 0
+
+    fun withDiagonal(index: Int, pressed: Boolean): GamepadState =
+        copy(diagonals = if (pressed) diagonals or (1 shl index) else diagonals and (1 shl index).inv())
 
     fun withButton(button: ControllerButton, pressed: Boolean): GamepadState =
         copy(buttons = if (pressed) buttons or button.mask else buttons and button.mask.inv())

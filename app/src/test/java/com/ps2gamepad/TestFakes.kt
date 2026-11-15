@@ -29,7 +29,12 @@ class FakeHid : HidController {
         private set
     val registeredNames = mutableListOf<String>()
     override fun setControllerName(name: String) { controllerName = name }
+    /** 3.9.0: the diagonal-buttons descriptor is wanted, and which descriptor each register() used. */
+    var extended = false
+    val registeredExtended = mutableListOf<Boolean>()
+    override fun setExtendedReports(on: Boolean) { extended = on }
     override fun register(autoConnectPlugged: Boolean) {
+        registeredExtended += extended
         registeredNames += controllerName
         autoConnectFlags += autoConnectPlugged
         registerCalls++; lastAutoConnect = autoConnectPlugged; emit(HidEvent.RegisterRequested)

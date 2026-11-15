@@ -153,8 +153,26 @@ data class ComboStep(val buttons: Set<ControllerButton> = emptySet(), val hat: H
  * screen sees both axes move.
  */
 @Serializable
-data class StickDirection(val stick: Stick = Stick.LEFT, val dir: Hat = Hat.UP_LEFT) {
+data class StickDirection(
+    val stick: Stick = Stick.LEFT,
+    val dir: Hat = Hat.UP_LEFT,
+    /**
+     * 3.9.0: a diagonal sends its OWN button instead of moving the stick (needs "Diagonal buttons for
+     * emulators" on). Emulators with Up-Left / Up-Right / Down-Left / Down-Right slots can then tell the four
+     * diagonals apart (a stick diagonal is two axes, and such a slot stores only one).
+     */
+    val ownButton: Boolean = false,
+) {
     val isValid: Boolean get() = dir != Hat.NEUTRAL
+
+    /** 0-7 for diagonals (left ↖ ↗ ↙ ↘ = 0-3, right = 4-7), null for straight directions. */
+    val diagonalIndex: Int? get() {
+        val i = when (dir) { Hat.UP_LEFT -> 0; Hat.UP_RIGHT -> 1; Hat.DOWN_LEFT -> 2; Hat.DOWN_RIGHT -> 3; else -> return null }
+        return i + if (stick == Stick.LEFT) 0 else 4
+    }
+
+    /** How emulators (SDL, 0-based) name the diagonal button, e.g. "Button 12"; null for straight directions. */
+    val emulatorButtonName: String? get() = diagonalIndex?.let { "Button ${12 + it}" }
 
     /** Axis values (-1..1, y positive = down, like the HID report). */
     val x: Float get() = when (dir) { Hat.UP_RIGHT, Hat.RIGHT, Hat.DOWN_RIGHT -> 1f; Hat.UP_LEFT, Hat.LEFT, Hat.DOWN_LEFT -> -1f; else -> 0f }
@@ -295,6 +313,12 @@ data class ProfileStore(
      * and 125 Hz Bluetooth reports. Brightness is left to the phone (2.1.0).
      */
     val batterySaver: Boolean = true,
+    /**
+     * 3.9.0 (opt-in, all layouts): the phone registers with 8 extra buttons, one per stick diagonal, so
+     * emulators can bind each diagonal separately. Needs pairing again once (Windows reads the button count
+     * at pairing). Off = exactly the controller of earlier versions.
+     */
+    val diagonalButtons: Boolean = false,
 ) {
     val active: ControllerProfile get() = profiles.firstOrNull { it.id == activeId } ?: profiles.first()
 }

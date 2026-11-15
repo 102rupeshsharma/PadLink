@@ -41,12 +41,27 @@ public static class XboxMapper
         var b = XboxButtons.None;
         foreach (var (from, to) in ButtonMap) if (r.IsPressed(from)) b |= to;
         b |= Hat(r.Hat);
+        // a diagonal button held on the phone = that stick fully in that diagonal (Xbox has no such buttons)
+        var (lx, ly) = Diagonal(r.Diagonals & 0x0F) ?? (r.LeftX, r.LeftY);
+        var (rx, ry) = Diagonal((r.Diagonals >> 4) & 0x0F) ?? (r.RightX, r.RightY);
         return new XboxState(
             b,
             LeftTrigger: r.IsPressed(PadLinkButton.L2) ? (byte)255 : (byte)0,
             RightTrigger: r.IsPressed(PadLinkButton.R2) ? (byte)255 : (byte)0,
-            LeftX: Axis(r.LeftX), LeftY: Axis(-r.LeftY),
-            RightX: Axis(r.RightX), RightY: Axis(-r.RightY));
+            LeftX: Axis(lx), LeftY: Axis(-ly),
+            RightX: Axis(rx), RightY: Axis(-ry));
+    }
+
+    /// <summary>Four diagonal bits (↖ ↗ ↙ ↘) → stick x/y in PadLink terms (y positive = down); null when none is held.</summary>
+    public static (int X, int Y)? Diagonal(int bits)
+    {
+        if ((bits & 0x0F) == 0) return null;
+        int x = 0, y = 0;
+        if ((bits & 1) != 0) { x -= 127; y -= 127; } // ↖
+        if ((bits & 2) != 0) { x += 127; y -= 127; } // ↗
+        if ((bits & 4) != 0) { x -= 127; y += 127; } // ↙
+        if ((bits & 8) != 0) { x += 127; y += 127; } // ↘
+        return (Math.Clamp(x, -127, 127), Math.Clamp(y, -127, 127));
     }
 
     /// <summary>Hat switch (0 = up, clockwise in 45° steps, 8 = released) → D-pad bits.</summary>

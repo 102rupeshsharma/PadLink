@@ -448,7 +448,12 @@ fun StickDirectionButton(
     val neu = LocalNeu.current
     val source = "stickdir_$id"
     DisposableEffect(resetKey, direction) {
-        onDispose { if (style.interactive) input.setStickPushFrom(source, direction.stick, null) }
+        onDispose {
+            if (style.interactive) {
+                input.setStickPushFrom(source, direction.stick, null)
+                direction.diagonalIndex?.let { input.setDiagonalFrom(source, it, false) }
+            }
+        }
     }
     Box(
         modifier.inputIfInteractive(resetKey) { pointers, t ->
@@ -456,7 +461,9 @@ fun StickDirectionButton(
             input.reportPointers(source, pointers.size)
             if (now != pressed) {
                 pressed = now
-                input.setStickPushFrom(source, direction.stick, if (now) StickVector(direction.x, direction.y) else null, t)
+                val own = direction.diagonalIndex?.takeIf { direction.ownButton && input.extendedReports }
+                if (own != null) input.setDiagonalFrom(source, own, now, t) // its own button (emulator diagonal slots)
+                else input.setStickPushFrom(source, direction.stick, if (now) StickVector(direction.x, direction.y) else null, t)
                 if (now) haptic()
             }
         },

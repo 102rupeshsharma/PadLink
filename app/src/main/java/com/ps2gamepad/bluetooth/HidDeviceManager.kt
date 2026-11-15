@@ -40,6 +40,8 @@ interface HidController {
     fun register(autoConnectPlugged: Boolean = true)
     /** The controller name the PC shows ("PadLink Gamepad", "PadLink Gamepad P2"); used at the next register. */
     fun setControllerName(name: String) {}
+    /** 3.9.0: register with the diagonal-buttons descriptor (20 buttons) at the next register. */
+    fun setExtendedReports(on: Boolean) {}
     fun unregister()
     fun connect(address: String)
     fun disconnect()
@@ -174,6 +176,11 @@ class HidDeviceManager(
     @Volatile private var controllerName: String = HidDescriptor.SDP_NAME
     override fun setControllerName(name: String) { controllerName = name }
 
+    @Volatile private var wantExtended = false
+    /** The descriptor actually registered: reports are always sent in ITS length. */
+    @Volatile private var registeredExtended = false
+    override fun setExtendedReports(on: Boolean) { wantExtended = on }
+
     override fun register(autoConnectPlugged: Boolean) {
         this.autoConnectPlugged = autoConnectPlugged
         runOnCallbackThread {
@@ -199,9 +206,11 @@ class HidDeviceManager(
             HidDescriptor.SDP_DESCRIPTION,
             HidDescriptor.SDP_PROVIDER,
             (BluetoothHidDevice.SUBCLASS1_NONE.toInt() or BluetoothHidDevice.SUBCLASS2_GAMEPAD.toInt()).toByte(),
-            HidDescriptor.REPORT_DESCRIPTOR,
+            HidDescriptor.descriptor(wantExtended),
         )
-        log("Registering with gamepad descriptor as \"$controllerName\"")
+        registeredExtended = wantExtended
+        lastReport = HidReportManager.fit(lastReport, registeredExtended)
+        log("Registering with gamepad descriptor as \"$controllerName\"" + if (wantExtended) " (with 8 diagonal buttons)" else "")
         dispatch(HidEvent.RegisterRequested)
         val ok = try {
             hid.registerApp(sdp, null, null, callbackExecutor, HidDeviceCallback(listener))
@@ -365,11 +374,12 @@ class HidDeviceManager(
     // ---------------------------------------------------------------- reports
 
     override fun sendReport(report: ByteArray, eventUptimeMs: Long): Boolean {
-        require(report.size == HidDescriptor.REPORT_LENGTH) { "report must be ${HidDescriptor.REPORT_LENGTH} bytes" }
+        // always in the registered descriptor's length (the setting may change before re-pairing)
+        val fitted = HidReportManager.fit(report, registeredExtended)
         lock.withLock {
-            lastReport = report
+            lastReport = fitted
             if (connectedDevice == null || hidDevice == null) return false
-            queue.offer(PendingReport(report, eventUptimeMs))
+            queue.offer(PendingReport(fitted, eventUptimeMs))
             hasWork.signal()
         }
         return true

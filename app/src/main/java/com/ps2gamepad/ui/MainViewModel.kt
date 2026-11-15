@@ -526,6 +526,10 @@ class MainViewModel(
         }
         // battery saver also covers the saved setting once it is loaded from disk
         viewModelScope.launch { settings.store.map { it.batterySaver }.distinctUntilChanged().collect { hid.setPowerSaving(it) } }
+        // 3.9.0: the saved choice is applied before anything registers (registering waits for the saved settings)
+        viewModelScope.launch {
+            settings.store.map { it.diagonalButtons }.distinctUntilChanged().collect { hid.setExtendedReports(it); input.extendedReports = it }
+        }
     }
 
     // ------------------------------------------------------------------ inputs from the Activity
@@ -592,7 +596,13 @@ class MainViewModel(
             bluetoothState.value != BluetoothState.ENABLED -> log.add("Cannot register: ${bluetoothState.value.label}")
             permission.value != PermissionState.GRANTED -> log.add("Cannot register: Bluetooth permission required")
             !settings.loaded.value -> { registerWhenLoaded = true; log.add("Waiting for saved settings before registering...") }
-            else -> { log.add("Registering HID gamepad..."); hid.register(autoConnectPlugged = !userDisconnected && chosenHost == null && !waitingForNewLaptop) }
+            else -> {
+                // 3.9.0: the descriptor follows the SAVED choice at the moment of registering (no race with collectors)
+                val diag = profiles.value.diagonalButtons
+                hid.setExtendedReports(diag); input.extendedReports = diag
+                log.add("Registering HID gamepad...")
+                hid.register(autoConnectPlugged = !userDisconnected && chosenHost == null && !waitingForNewLaptop)
+            }
         }
     }
 
@@ -653,6 +663,23 @@ class MainViewModel(
     }
 
     /** Opacity of one control (1 = fully visible); stored per profile. */
+    /**
+     * 3.9.0: "Diagonal buttons for emulators" on/off. The new controller description is only used from the
+     * next registration, so a running gamepad is stopped (Connect again) and the PC must pair again once.
+     */
+    fun setDiagonalButtons(on: Boolean) {
+        if (profiles.value.diagonalButtons == on) return
+        settings.update { it.copy(diagonalButtons = on) }
+        hid.setExtendedReports(on)
+        input.extendedReports = on
+        log.add(if (on) "Diagonal buttons ON: on the PC remove PadLink and pair again once, then Connect"
+                else "Diagonal buttons OFF: on the PC remove PadLink and pair again once, then Connect")
+        if (wantRegistered || hidState.value.registration != RegistrationState.NotRegistered) {
+            unregister()
+            _connectRequested.value = false
+        }
+    }
+
     /** 3.8.0: hide or show a control in the layout in use (hidden = not drawn, cannot be pressed). */
     fun setControlHidden(id: ControlId, hidden: Boolean) {
         if (hidden) input.releaseAll() // nothing hidden may stay pressed

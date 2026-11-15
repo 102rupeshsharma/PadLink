@@ -31,7 +31,7 @@ public static class DeviceMatcher
     {
         if (c.VendorId == MicrosoftVendorId) return 0;
         if (!c.IsGamepad) return 0;
-        var shape = c.MaxInputReportLength == PadLinkReport.LengthWithId;
+        var shape = c.MaxInputReportLength is PadLinkReport.LengthWithId or PadLinkReport.LengthWithIdExtended;
         var name = NameLooksLikePadLink(c.ProductName);
         return (shape ? 1 : 0) + (name ? 2 : 0) + (shape && name ? 1 : 0);
     }

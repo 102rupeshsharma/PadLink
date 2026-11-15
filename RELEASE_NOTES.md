@@ -1,5 +1,29 @@
 # Release notes
 
+## PadLink 3.9.0 (versionCode 28) + PadLink Bridge 1.3.0, 2026-11-15: every stick direction on its own input
+
+- **Reported:** in a 3DS emulator, Up Left and Up Right both became "Axis 1-" (and both downs "Axis 1+"), so
+  diagonals acted the same. A stick diagonal is two axes and each emulator box stores one input.
+- **Diagonal buttons for emulators** (☰ → Settings, opt-in, all layouts): the phone registers with 8 extra
+  buttons appended after the axes: left ↖ ↗ ↙ ↘ = Button 12-15, right ↖ ↗ ↙ ↘ = Button 16-19 (emulator
+  numbering). Buttons 1-12, the hat and axes 0-3 keep their exact place, so existing mappings stay. Straight
+  directions already are Axis 0-3 ±, so all 16 directions are distinct. Needs pairing again once (Windows reads
+  the button count at pairing); OFF by default = exactly the controller of earlier versions.
+- **Stick direction buttons: "Own button"** (Edit) for diagonals: sends only that diagonal button (the stick
+  does not move), for the emulator's diagonal boxes. "Moves the stick" stays the default. Without the setting
+  an Own button still moves the stick.
+- Reports always have the registered descriptor's length (the setting can change before pairing again); the
+  saved choice is applied at the moment of registering (a test caught a start-up race here).
+- **PadLink Bridge 1.3.0:** reads the diagonal byte and turns a held diagonal button into that stick's full
+  diagonal for Xbox games; still finds the phone with the longer report.
+- **README:** the 3.8.0 advice to press a stick direction button into an emulator's diagonal box was wrong
+  (that binds one axis); new section "Mapping every stick direction": use Set Analog Stick, or the diagonal
+  buttons.
+- Tests: phone DiagonalDescriptorTest (6: standard descriptor unchanged, extended only appends 8 buttons, 56
+  bits), DiagonalInputTest (4), DiagonalSettingViewModelTest (3), DiagonalButtonsUiTest (3); Bridge 9 new
+  (83 total). Bridge self-test on the laptop with the real driver: all passed. **Not yet checked:** pairing
+  with the diagonal descriptor on Windows and binding in the 3DS emulator.
+
 ## PadLink 3.8.0 (versionCode 27), 2026-11-15: stick diagonals, hide buttons, 10 loadouts
 
 - **Stick direction buttons** (requested: "3DS emulators let me set up-left, up-right, down-left, down-right

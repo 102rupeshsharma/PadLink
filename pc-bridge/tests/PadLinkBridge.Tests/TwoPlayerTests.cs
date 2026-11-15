@@ -200,3 +200,63 @@ public class TwoPlayerTests
         Assert.Empty(DeviceMatcher.PickAll([new(@"\\?\hid#kb", "Keyboard", 1, 2, false, 9)]));
     }
 }
+
+/// <summary>PadLink 3.9.0 "Diagonal buttons for emulators": the longer report and what Xbox games see.</summary>
+public class DiagonalButtonTests
+{
+    [Fact]
+    public void OldSevenByteReportsStillParseWithNoDiagonals()
+    {
+        var r = PadLinkReport.Parse(new PadLinkReport(2, PadLinkReport.HatReleased, 10, -20, 30, -40).ToBytes())!.Value;
+        Assert.Equal(0, r.Diagonals);
+        Assert.Equal((sbyte)10, r.LeftX);
+    }
+
+    [Fact]
+    public void EightByteReportCarriesTheDiagonalByte()
+    {
+        var bytes = new PadLinkReport(0, PadLinkReport.HatReleased, 0, 0, 0, 0, Diagonals: 0b1000_0001).ToBytes(extended: true);
+        Assert.Equal(8, bytes.Length);
+        Assert.Equal(0b1000_0001, PadLinkReport.Parse(bytes)!.Value.Diagonals);
+    }
+
+    [Theory]
+    [InlineData(0b0001, -32767, 32767)]  // left ↖ : Xbox up is positive Y
+    [InlineData(0b0010, 32767, 32767)]   // left ↗
+    [InlineData(0b0100, -32767, -32767)] // left ↙
+    [InlineData(0b1000, 32767, -32767)]  // left ↘
+    public void LeftDiagonalButtonBecomesAFullLeftStickDiagonal(int bit, int x, int y)
+    {
+        var s = XboxMapper.Map(new PadLinkReport(0, PadLinkReport.HatReleased, 0, 0, 0, 0, Diagonals: bit));
+        Assert.Equal(x, s.LeftX);
+        Assert.Equal(y, s.LeftY);
+        Assert.Equal(0, s.RightX);
+        Assert.Equal(XboxButtons.None, s.Buttons);
+    }
+
+    [Fact]
+    public void RightDiagonalButtonMovesOnlyTheRightStick()
+    {
+        var s = XboxMapper.Map(new PadLinkReport(0, PadLinkReport.HatReleased, 50, 0, 0, 0, Diagonals: 0b1000_0000)); // right ↘
+        Assert.Equal(32767, s.RightX);
+        Assert.Equal(-32767, s.RightY);
+        Assert.Equal(XboxMapper.Axis(50), s.LeftX); // the thumb on the left stick is untouched
+    }
+
+    [Fact]
+    public void ReleasingTheDiagonalGivesTheStickBack()
+    {
+        var held = XboxMapper.Map(new PadLinkReport(0, PadLinkReport.HatReleased, 0, 0, 0, 0, Diagonals: 1));
+        var released = XboxMapper.Map(new PadLinkReport(0, PadLinkReport.HatReleased, 0, 0, 0, 0, Diagonals: 0));
+        Assert.NotEqual(0, held.LeftX);
+        Assert.Equal(XboxState.Neutral, released);
+    }
+
+    [Fact]
+    public void ThePhoneWithDiagonalButtonsIsStillFound()
+    {
+        var c = new HidCandidate(@"\?\hid#x#1#{4d1e55b2-f16f-11cf-88cb-001111000030}", "PadLink Gamepad", 0x00E0, 0, true, 8);
+        Assert.Equal(c, DeviceMatcher.Pick([c]));
+        Assert.True(DeviceMatcher.Score(c) >= DeviceMatcher.Score(c with { MaxInputReportLength = 7 }));
+    }
+}
