@@ -1,5 +1,25 @@
 # Release notes
 
+## PadLink 3.8.0 (versionCode 27), 2026-11-15: stick diagonals, hide buttons, 10 loadouts
+
+- **Stick direction buttons** (requested: "3DS emulators let me set up-left, up-right, down-left, down-right
+  for both sticks"). **Edit → + Stick ↗** adds a button for the left or right stick in any of 8 directions,
+  diagonals first. While held, that stick is pushed fully in that direction (a diagonal pushes both axes
+  fully, so the emulator's binding screen sees it); releasing gives the stick back to the thumb (and the
+  right stick back to the gyro). Several held: the last pressed counts. Buttons, D-pad and the other stick
+  are untouched.
+- **Hide buttons per loadout** (e.g. no L2 / R2): **Settings → Buttons on screen** (tap to hide / show), or in
+  Edit select a control → **Hide**. Hidden controls are not drawn and cannot be pressed; hiding releases
+  anything held.
+- **10 loadouts** instead of 5. Each loadout already kept its own settings (button style, face labels such
+  as △ ○ ✕ □ in one and Y B A X in another, sizes, opacity, sticks, gyro, combos); now also its hidden
+  buttons and stick direction buttons. The Settings panel says which loadout it saves to. Up to 16 added
+  buttons per loadout (was 12).
+- Tests: LayoutFeaturesModelTest (5), StickDirectionInputTest (6), LayoutFeaturesUiTest (6: hide L2/R2 in
+  Settings and show again; nothing pressed where a hidden button was; hide from the editor; add a right
+  stick ↘ button and press it (right stick 127/127, no button); each loadout keeps its own labels and hidden
+  buttons; 10 loadouts). Loadout limit tests updated to 10.
+
 ## PadLink 3.7.1 (versionCode 26), 2026-11-10: Back closes the ☰ menu
 
 - **Fix: Back did not close the ☰ menu (or the Settings panel) inside the controller** (reported). Back now

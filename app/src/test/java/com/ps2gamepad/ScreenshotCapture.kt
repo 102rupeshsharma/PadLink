@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ps2gamepad.bluetooth.HidEvent
 import com.ps2gamepad.bluetooth.HidStateReducer
 import com.ps2gamepad.model.BluetoothState
@@ -98,6 +99,27 @@ class ScreenshotCapture {
         shoot("08b_settings_style_tiles")
         rule.onNodeWithTag("chip_Close").performClick()
         rule.runOnIdle { vm.resetAppearance() }
+        // 3.8.0: L2/R2 hidden + four diagonal buttons for the left stick
+        rule.runOnIdle {
+            vm.setControlHidden(com.ps2gamepad.model.ControlId.L2, true); vm.setControlHidden(com.ps2gamepad.model.ControlId.R2, true)
+            vm.saveLayout(emptyMap(), listOf(
+                ExtraButton("d1", ControllerButton.CROSS, 0.36f, 0.26f, 0.8f, stickDirection = com.ps2gamepad.model.StickDirection(Stick.LEFT, Hat.UP_LEFT)),
+                ExtraButton("d2", ControllerButton.CROSS, 0.44f, 0.26f, 0.8f, stickDirection = com.ps2gamepad.model.StickDirection(Stick.LEFT, Hat.UP_RIGHT)),
+                ExtraButton("d3", ControllerButton.CROSS, 0.56f, 0.26f, 0.8f, stickDirection = com.ps2gamepad.model.StickDirection(Stick.RIGHT, Hat.DOWN_LEFT)),
+                ExtraButton("d4", ControllerButton.CROSS, 0.64f, 0.26f, 0.8f, stickDirection = com.ps2gamepad.model.StickDirection(Stick.RIGHT, Hat.DOWN_RIGHT)),
+            ))
+        }
+        shoot("21_hidden_and_diagonals")
+        rule.runOnIdle { vm.setEditMode(true) }
+        rule.onNodeWithTag("editx_d1").performClick()
+        shoot("22_edit_stick_direction")
+        rule.runOnIdle { vm.setEditMode(false) }
+        rule.onNodeWithTag("menuButton").performClick()
+        rule.onNodeWithTag("chip_Settings").performClick()
+        rule.onNodeWithTag("show_SQUARE").performScrollTo()
+        shoot("23_settings_buttons_on_screen")
+        rule.onNodeWithTag("chip_Close").performClick()
+        rule.runOnIdle { vm.setControlHidden(com.ps2gamepad.model.ControlId.L2, false); vm.setControlHidden(com.ps2gamepad.model.ControlId.R2, false); vm.saveLayout(emptyMap(), emptyList()) }
         val combos = listOf(
             ExtraButton("c1", ControllerButton.CROSS, 0.5f, 0.2f, steps = listOf(ComboStep(setOf(ControllerButton.L1, ControllerButton.R1)))),
             ExtraButton("c2", ControllerButton.CROSS, 0.5f, 0.62f, steps = listOf(

@@ -45,11 +45,12 @@ class LoadoutLimitTest {
     private var n = 0
     private val ids = { "l${n++}" }
 
-    @Test fun builtInsDoNotCountAndTheLimitIsFive() {
+    @Test fun builtInsDoNotCountAndTheLimitIsTen() {
+        assertEquals("3.8.0: up to 10 loadouts", 10, ProfileManager.MAX_LOADOUTS)
         var s = DefaultProfiles.store()
         assertEquals(0, ProfileManager.loadouts(s).size)
-        repeat(5) { i -> s = ProfileManager.createFrom(s, "Game $i", s.activeId, ids) }
-        assertEquals(5, ProfileManager.loadouts(s).size)
+        repeat(10) { i -> s = ProfileManager.createFrom(s, "Game $i", s.activeId, ids) }
+        assertEquals(10, ProfileManager.loadouts(s).size)
         assertFalse(ProfileManager.canCreateLoadout(s))
         // every way of adding one more is refused
         assertEquals(s, ProfileManager.createFrom(s, "Sixth", s.activeId, ids))
@@ -145,15 +146,15 @@ class LoadoutViewModelTest {
         assertEquals(0.4f, nf.appearance.opacityOf(ControlId.DPAD))
     }
 
-    @Test fun sixthLoadoutIsRefusedWithAMessage() = runTest(dispatcher) {
+    @Test fun eleventhLoadoutIsRefusedWithAMessage() = runTest(dispatcher) {
         val vm = newVm(); runCurrent()
-        repeat(5) { assertTrue(vm.createLoadout("G$it")) }
+        repeat(10) { assertTrue(vm.createLoadout("G$it")) }
         assertFalse(vm.canCreateLoadout)
         val screenBefore = vm.screen.value
-        assertFalse(vm.createLoadout("G6"))
-        assertEquals(5, vm.loadouts.size)
+        assertFalse(vm.createLoadout("G11"))
+        assertEquals(10, vm.loadouts.size)
         assertEquals(screenBefore, vm.screen.value)
-        assertTrue(vm.log.lines.value.last().contains("5 loadouts"))
+        assertTrue(vm.log.lines.value.last().contains("10 loadouts"))
         vm.deleteLoadout(vm.loadouts.first().id)
         assertTrue(vm.canCreateLoadout)
     }
@@ -174,7 +175,7 @@ class LoadoutUiTest {
 
     @Test fun pickerShowsDefaultAndNewCard() {
         rule.onNodeWithText("Choose a loadout").assertIsDisplayed()
-        rule.onNodeWithText("0 / 5 loadouts").assertIsDisplayed()
+        rule.onNodeWithText("0 / 10 loadouts").assertIsDisplayed()
         rule.onNodeWithTag("loadout_standard").assertIsDisplayed()
         rule.onNodeWithTag("newLoadoutCard").assertIsDisplayed()
     }
@@ -191,7 +192,7 @@ class LoadoutUiTest {
         rule.onNodeWithText("EDIT LAYOUT").assertIsDisplayed()
         rule.onNodeWithTag("chip_Save").performClick()
         rule.runOnIdle { vm.openController() }
-        rule.onNodeWithText("1 / 5 loadouts").assertIsDisplayed()
+        rule.onNodeWithText("1 / 10 loadouts").assertIsDisplayed()
         rule.onNodeWithText("LAST USED").assertIsDisplayed()
         rule.onNodeWithTag("play_standard").performClick()
         rule.runOnIdle {
@@ -212,8 +213,8 @@ class LoadoutUiTest {
     }
 
     @Test fun newCardDisappearsAtTheLimit() {
-        rule.runOnIdle { repeat(5) { vm.createLoadout("Game $it") }; vm.openController() }
-        rule.onNodeWithText("5 / 5 loadouts").assertIsDisplayed()
+        rule.runOnIdle { repeat(10) { vm.createLoadout("Game $it") }; vm.openController() }
+        rule.onNodeWithText("10 / 10 loadouts").assertIsDisplayed()
         rule.onNodeWithTag("newLoadoutCard").assertDoesNotExist()
     }
 

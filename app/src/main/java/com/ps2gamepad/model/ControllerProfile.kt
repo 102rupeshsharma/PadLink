@@ -90,7 +90,11 @@ data class Appearance(
     val buttonStyle: ButtonStyle = ButtonStyle.REAL,
     /** What the four face buttons show. They always send the same HID buttons. */
     val faceLabels: FaceLabels = FaceLabels.XBOX,
+    /** 3.8.0: controls hidden in this layout (not drawn, cannot be pressed), e.g. L2 and R2. */
+    val hidden: Set<ControlId> = emptySet(),
 ) {
+    fun isHidden(id: ControlId): Boolean = id in hidden
+
     fun opacityOf(id: ControlId): Float =
         controlOpacity[id] ?: (if (id in ControlId.FACE_BUTTONS) controlOpacity[ControlId.FACE] else null) ?: 1f
 
@@ -101,6 +105,7 @@ data class Appearance(
         controllerOpacity = controllerOpacity.finiteOr(1f).coerceIn(0f, 1f),
         buttonSpacing = buttonSpacing.finiteOr(1f).coerceIn(0.8f, 1.3f),
         controlOpacity = controlOpacity.mapValues { it.value.finiteOr(1f).coerceIn(MIN_CONTROL_OPACITY, 1f) }.filterValues { it < 1f },
+        hidden = hidden.filter { it in ControlId.editable }.toSet(),
     )
 
     companion object {
@@ -142,6 +147,33 @@ data class ComboStep(val buttons: Set<ControllerButton> = emptySet(), val hat: H
 }
 
 /**
+ * 3.8.0: a stick pushed fully in one of 8 directions while an added button is held, e.g. left stick
+ * up-left. For emulators that bind each stick direction (and diagonal) separately, and for exact
+ * diagonals in games. A diagonal pushes BOTH axes to full (corner of the square), so the binding
+ * screen sees both axes move.
+ */
+@Serializable
+data class StickDirection(val stick: Stick = Stick.LEFT, val dir: Hat = Hat.UP_LEFT) {
+    val isValid: Boolean get() = dir != Hat.NEUTRAL
+
+    /** Axis values (-1..1, y positive = down, like the HID report). */
+    val x: Float get() = when (dir) { Hat.UP_RIGHT, Hat.RIGHT, Hat.DOWN_RIGHT -> 1f; Hat.UP_LEFT, Hat.LEFT, Hat.DOWN_LEFT -> -1f; else -> 0f }
+    val y: Float get() = when (dir) { Hat.DOWN_LEFT, Hat.DOWN, Hat.DOWN_RIGHT -> 1f; Hat.UP_LEFT, Hat.UP, Hat.UP_RIGHT -> -1f; else -> 0f }
+
+    /** Short label shown on the button, e.g. "L↖". */
+    val label: String get() = (if (stick == Stick.LEFT) "L" else "R") + ARROWS.getValue(dir)
+
+    companion object {
+        val ARROWS = mapOf(
+            Hat.UP to "↑", Hat.UP_RIGHT to "↗", Hat.RIGHT to "→", Hat.DOWN_RIGHT to "↘",
+            Hat.DOWN to "↓", Hat.DOWN_LEFT to "↙", Hat.LEFT to "←", Hat.UP_LEFT to "↖", Hat.NEUTRAL to "",
+        )
+        /** Diagonals first: the ones emulators ask for and a thumb finds hardest. */
+        val ORDER = listOf(Hat.UP_LEFT, Hat.UP_RIGHT, Hat.DOWN_LEFT, Hat.DOWN_RIGHT, Hat.UP, Hat.DOWN, Hat.LEFT, Hat.RIGHT)
+    }
+}
+
+/**
  * A button the user added in the layout editor. Centre is a screen fraction (0..1); [scale]
  * multiplies the default size. It only ever presses the existing 12 buttons / D-pad, so the HID
  * report never changes.
@@ -149,6 +181,7 @@ data class ComboStep(val buttons: Set<ControllerButton> = emptySet(), val hat: H
  *  - One step: a COMBO pressed together while held (e.g. L1+R1).
  *  - Several steps: a COMBO played in order on each tap (e.g. down, down-right, right + Square),
  *    each step held [stepMs].
+ *  - [stickDirection] (3.8.0): pushes a stick in that direction while held (then [button] is unused).
  */
 @Serializable
 data class ExtraButton(
@@ -159,8 +192,10 @@ data class ExtraButton(
     val scale: Float = 1f,
     val steps: List<ComboStep> = emptyList(),
     val stepMs: Int = DEFAULT_STEP_MS,
+    val stickDirection: StickDirection? = null,
 ) {
-    val isCombo: Boolean get() = steps.isNotEmpty()
+    val isStickDirection: Boolean get() = stickDirection != null
+    val isCombo: Boolean get() = steps.isNotEmpty() && stickDirection == null
     /** A combo with several steps plays as a sequence; one step is held together. */
     val isSequence: Boolean get() = steps.size > 1
 
@@ -170,6 +205,7 @@ data class ExtraButton(
         scale = scale.finiteOr(1f).coerceIn(0.5f, 2f),
         steps = steps.filterNot { it.isEmpty }.take(MAX_STEPS),
         stepMs = stepMs.coerceIn(MIN_STEP_MS, MAX_STEP_MS),
+        stickDirection = stickDirection?.takeIf { it.isValid },
     )
 
     companion object {
@@ -244,7 +280,7 @@ data class ControllerProfile(
 
     companion object {
         const val MAX_NAME = 32
-        const val MAX_EXTRA_BUTTONS = 12
+        const val MAX_EXTRA_BUTTONS = 16
     }
 }
 

@@ -123,14 +123,37 @@ class ControllerInputManager(
     /** Right stick from touch and from the gyro: touch wins while the thumb is on the stick. */
     private var touchRight = StickVector.ZERO
     private var gyroRight = StickVector.ZERO
+    private var touchLeft = StickVector.ZERO
+
+    /**
+     * 3.8.0: stick directions held by direction buttons (e.g. "L↖"), per button. While any is held it
+     * wins over the thumb (and the gyro); the button pressed last counts. Releasing it returns the stick
+     * to the thumb, exactly as before.
+     */
+    private val stickPushes = mapOf(Stick.LEFT to LinkedHashMap<String, StickVector>(), Stick.RIGHT to LinkedHashMap<String, StickVector>())
 
     /** [vector] components in [-1, 1], already through the dead zone. */
     fun setStick(stick: Stick, vector: StickVector, eventUptimeMs: Long = clock()) {
         if (stick == Stick.LEFT) {
-            mutate(eventUptimeMs) { it.withStick(stick, StickMath.toAxis(vector.x), StickMath.toAxis(vector.y)) }
+            synchronized(lock) { touchLeft = vector; applyLeft(eventUptimeMs) }
             return
         }
         synchronized(lock) { touchRight = vector; applyRight(eventUptimeMs) }
+    }
+
+    /** A direction button held ([vector]) or released (null) on behalf of [source]. */
+    fun setStickPushFrom(source: String, stick: Stick, vector: StickVector?, eventUptimeMs: Long = clock()) {
+        synchronized(lock) {
+            val m = stickPushes.getValue(stick)
+            m.remove(source)
+            if (vector != null) m[source] = vector
+            if (stick == Stick.LEFT) applyLeft(eventUptimeMs) else applyRight(eventUptimeMs)
+        }
+    }
+
+    private fun applyLeft(t: Long) {
+        val v = stickPushes.getValue(Stick.LEFT).values.lastOrNull() ?: touchLeft
+        mutate(t) { it.withStick(Stick.LEFT, StickMath.toAxis(v.x), StickMath.toAxis(v.y)) }
     }
 
     /** Gyro aiming output for the right stick (any thread). */
@@ -139,7 +162,8 @@ class ControllerInputManager(
     }
 
     private fun applyRight(t: Long) {
-        val v = if (touchRight != StickVector.ZERO) touchRight else gyroRight
+        val v = stickPushes.getValue(Stick.RIGHT).values.lastOrNull()
+            ?: if (touchRight != StickVector.ZERO) touchRight else gyroRight
         mutate(t) { it.withStick(Stick.RIGHT, StickMath.toAxis(v.x), StickMath.toAxis(v.y)) }
     }
 
@@ -151,6 +175,8 @@ class ControllerInputManager(
             dpadHolders.clear()
             touchRight = StickVector.ZERO
             gyroRight = StickVector.ZERO
+            touchLeft = StickVector.ZERO
+            stickPushes.values.forEach { it.clear() }
             _activePointers.value = 0
             _state.value = GamepadState.NEUTRAL
             _resetEpoch.value = _resetEpoch.value + 1

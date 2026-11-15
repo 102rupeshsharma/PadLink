@@ -653,6 +653,12 @@ class MainViewModel(
     }
 
     /** Opacity of one control (1 = fully visible); stored per profile. */
+    /** 3.8.0: hide or show a control in the layout in use (hidden = not drawn, cannot be pressed). */
+    fun setControlHidden(id: ControlId, hidden: Boolean) {
+        if (hidden) input.releaseAll() // nothing hidden may stay pressed
+        updateAppearance { it.copy(hidden = if (hidden) it.hidden + id else it.hidden - id) }
+    }
+
     fun setControlOpacity(id: ControlId, value: Float) = updateAppearance {
         it.copy(controlOpacity = if (value >= 0.995f) it.controlOpacity - id else it.controlOpacity + (id to value))
     }
@@ -870,7 +876,7 @@ class MainViewModel(
     }
 
     companion object {
-        const val LOADOUT_LIMIT_MESSAGE = "You already have 5 loadouts. Delete one to create a new one."
+        val LOADOUT_LIMIT_MESSAGE = "You already have ${ProfileManager.MAX_LOADOUTS} loadouts. Delete one to create a new one."
         const val MAX_AUTO_REGISTER = 3
         /** How long "Connecting…" is shown after tapping Connect without a connection. */
         const val CONNECT_TIMEOUT_MS = 20_000L
