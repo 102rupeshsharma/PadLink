@@ -4,6 +4,7 @@ import com.ps2gamepad.bluetooth.HidReportManager
 import com.ps2gamepad.model.ControllerButton
 import com.ps2gamepad.model.Dpad
 import com.ps2gamepad.model.GamepadState
+import com.ps2gamepad.model.Hat
 import com.ps2gamepad.model.Stick
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -81,6 +82,58 @@ class ControllerInputManager(
             if (pressed) set.add(source) else set.remove(source)
             mutate(eventUptimeMs) { it.withDiagonal(index, set.isNotEmpty()) }
         }
+    }
+
+    // ------------------------------------------------------------------ 3.10.0 Mapping mode
+
+    @Volatile private var mappingMode = false
+    /** Mapping mode only works with the diagonal buttons (otherwise diagonals would have no code). */
+    private val mappingActive: Boolean get() = mappingMode && extendedReports
+    /** Direction each stick is in while mapping (kept for the hysteresis). */
+    private val mapDir = HashMap<Stick, Hat>().apply { put(Stick.LEFT, Hat.NEUTRAL); put(Stick.RIGHT, Hat.NEUTRAL) }
+
+    /**
+     * Mapping mode on/off: while on, each stick sends ONE code per direction (left/right/up/down = one axis,
+     * diagonals = their own button, nothing else), so an emulator can bind all 8 directions of both sticks.
+     * Off = the normal analog sticks. Applied at once to sticks that are held.
+     */
+    fun setMappingMode(on: Boolean, eventUptimeMs: Long = clock()) {
+        synchronized(lock) {
+            if (mappingMode == on) return
+            mappingMode = on
+            applyLeft(eventUptimeMs)
+            applyRight(eventUptimeMs)
+        }
+    }
+
+    val isMappingMode: Boolean get() = mappingMode
+
+    private fun diagonalsFromHolders(): Int {
+        var bits = 0
+        for ((i, set) in diagonalHolders) if (set.isNotEmpty()) bits = bits or (1 shl i)
+        return bits
+    }
+
+    /** Sends stick [stick] from its effective vector [v]: analog normally, one code per direction while mapping. */
+    private fun applyStickVector(stick: Stick, v: StickVector, t: Long) {
+        val source = "mapping_${stick.name}"
+        val base = if (stick == Stick.LEFT) 0 else 4
+        if (!mappingActive) {
+            mapDir[stick] = Hat.NEUTRAL
+            for (i in base until base + 4) diagonalHolders[i]?.remove(source)
+            mutate(t) { it.withStick(stick, StickMath.toAxis(v.x), StickMath.toAxis(v.y)).copy(diagonals = diagonalsFromHolders()) }
+            return
+        }
+        val dir = StickMapping.direction(v, mapDir.getValue(stick))
+        mapDir[stick] = dir
+        val diag = com.ps2gamepad.model.StickDirection(stick, dir).diagonalIndex
+        for (i in base until base + 4) {
+            val set = diagonalHolders.getOrPut(i) { HashSet() }
+            if (i == diag) set.add(source) else set.remove(source)
+        }
+        val a = StickMapping.axes(dir) // straight: one full axis; diagonal / neutral: no axis movement
+        // one state change: the PC never sees an axis and a diagonal at the same time
+        mutate(t) { it.withStick(stick, StickMath.toAxis(a.x), StickMath.toAxis(a.y)).copy(diagonals = diagonalsFromHolders()) }
     }
 
     /** Which controls currently hold each button (the built-in control and any extra buttons). */
@@ -169,7 +222,7 @@ class ControllerInputManager(
 
     private fun applyLeft(t: Long) {
         val v = stickPushes.getValue(Stick.LEFT).values.lastOrNull() ?: touchLeft
-        mutate(t) { it.withStick(Stick.LEFT, StickMath.toAxis(v.x), StickMath.toAxis(v.y)) }
+        applyStickVector(Stick.LEFT, v, t)
     }
 
     /** Gyro aiming output for the right stick (any thread). */
@@ -179,8 +232,10 @@ class ControllerInputManager(
 
     private fun applyRight(t: Long) {
         val v = stickPushes.getValue(Stick.RIGHT).values.lastOrNull()
-            ?: if (touchRight != StickVector.ZERO) touchRight else gyroRight
-        mutate(t) { it.withStick(Stick.RIGHT, StickMath.toAxis(v.x), StickMath.toAxis(v.y)) }
+            ?: if (touchRight != StickVector.ZERO) touchRight
+            else if (mappingActive) StickVector.ZERO // mapping: the gyro must not produce codes by itself
+            else gyroRight
+        applyStickVector(Stick.RIGHT, v, t)
     }
 
     /** Releases every input, sends a neutral report and invalidates all active touches. */
@@ -190,6 +245,7 @@ class ControllerInputManager(
             holders.clear()
             dpadHolders.clear()
             diagonalHolders.clear()
+            mapDir[Stick.LEFT] = Hat.NEUTRAL; mapDir[Stick.RIGHT] = Hat.NEUTRAL
             touchRight = StickVector.ZERO
             gyroRight = StickVector.ZERO
             touchLeft = StickVector.ZERO

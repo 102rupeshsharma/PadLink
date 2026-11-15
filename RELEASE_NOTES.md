@@ -1,5 +1,28 @@
 # Release notes
 
+## PadLink 3.10.0 (versionCode 29), 2026-11-16: Mapping mode, 8 codes per joystick
+
+- **Reported:** dragging the joystick up-left / up-right in Azahar still recorded "Axis 1-" (the same as Up):
+  a joystick only has an X and a Y axis, so it can give 4 codes, not 8.
+- **Mapping mode** (☰ → Mapping, needs Diagonal buttons for emulators): while on, dragging a joystick sends
+  exactly ONE code per direction: left/right/up/down = Axis 0∓/1∓ (left joystick) and 2∓/3∓ (right joystick),
+  diagonals = Button 12-15 (left) and 16-19 (right) with no axis movement. 16 different codes. Discussed with
+  the user: buttons instead of extra axes (Windows allows only 8 axes and extra ones could renumber the right
+  stick).
+- Built for binding with a real thumb: a direction starts at half travel and is only released below 35 %;
+  near the edge between two directions the current one is kept for 10° more (no flipping while the emulator
+  listens); light touches send nothing; going from a diagonal to straight is one report (never two codes at
+  once); the gyro is ignored; stick direction buttons and Own-button diagonals combine safely; other
+  buttons and the D-pad are untouched.
+- Safety: never saved (always off at start), switches off when leaving the controller or turning Diagonal
+  buttons off, an orange MAPPING MODE bar is shown while on, and with the setting missing it explains what to
+  turn on instead of doing anything. Off = exactly the previous analog sticks (tested byte for byte).
+- Tests: StickMappingTest (9), MappingModeInputTest (13: all 16 directions give exactly one different code,
+  sweeping 720° never sends two codes, both sticks at once, light touches, gyro, release-all, own buttons,
+  off = analog byte for byte), MappingModeUiTest (7: real finger drags on both joysticks in 8 directions =
+  16 different single signals; menu, banner, unavailable message, leaving the controller, other buttons).
+  12 of them fail when Mapping mode is disabled in the code (checked). **Not yet checked in Azahar itself.**
+
 ## PadLink 3.9.0 (versionCode 28) + PadLink Bridge 1.3.0, 2026-11-15: every stick direction on its own input
 
 - **Reported:** in a 3DS emulator, Up Left and Up Right both became "Axis 1-" (and both downs "Axis 1+"), so
