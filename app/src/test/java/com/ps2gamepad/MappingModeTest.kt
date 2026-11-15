@@ -113,7 +113,8 @@ class StickMappingTest {
 /** 3.10.0: what the PC receives in Mapping mode (the emulator's binding boxes record these). */
 class MappingModeInputTest {
     private val sent = mutableListOf<ByteArray>()
-    private val m = ControllerInputManager(ReportSink { r, _ -> sent += r.copyOf(); true }).apply { extendedReports = true }
+    // the ramp's timing is tested in MappingRampTest; here its steps run at once, so every report is deterministic
+    private val m = ControllerInputManager(ReportSink { r, _ -> sent += r.copyOf(); true }, delayed = { _, task -> task() }).apply { extendedReports = true }
     private fun last() = HidReportManager.decode(sent.last())
 
     /** The code an emulator would record for the current report. */
@@ -161,7 +162,9 @@ class MappingModeInputTest {
         val before = sent.size
         m.setStick(Stick.LEFT, at(270f))
         assertEquals("Axis 1-", code())
-        assertEquals("one report: the diagonal is released and the axis set together", before + 1, sent.size)
+        val first = HidReportManager.decode(sent[before])
+        assertEquals("the first report already has the diagonal released", 0, first.diagonals)
+        assertTrue("…and the up axis set (one clean change)", first.y < 0 && first.x == 0)
     }
 
     @Test fun sweepingAroundTheStickNeverSendsTwoCodesAtOnce() {
@@ -313,6 +316,8 @@ class MappingModeUiTest {
             down(0, start)
             for (k in 1..6) moveTo(0, start + Offset(dir.x * 20f * k, dir.y * 20f * k))
         }
+        rule.waitForIdle()
+        Thread.sleep(250) // hold: the ramp (on its own timer) reaches full
         rule.waitForIdle()
         val d = HidReportManager.decode(hid.sent.last())
         root.performTouchInput { up(0) }

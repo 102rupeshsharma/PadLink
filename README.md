@@ -294,9 +294,10 @@ sends exactly **one** code, and every code is different:
 
 **Every time you map controls:**
 1. **☰ → Mapping**. An orange **MAPPING MODE** bar appears at the bottom.
-2. In the emulator click a box (e.g. Circle Pad **Up Left**), then **drag the left joystick up-left** and let
-   go. It shows **Button 12**. Do the same for all 8 boxes of the Circle Pad (left joystick) and the C-Stick
-   (right joystick).
+2. In the emulator click a box (e.g. Circle Pad **Right**), then **drag the left joystick right** and let go.
+   It shows **Axis 0+**; up-left shows **Button 12**. Do the same for all 8 boxes of the Circle Pad (left
+   joystick) and the C-Stick (right joystick). Boxes filled before 3.10.1 that show the wrong sign (e.g.
+   Right = "Axis 0-"): click them and drag again.
 3. **☰ → Map ON** to switch it off and play. Leaving the controller also switches it off, and it is never
    on when the app starts.
 
@@ -331,6 +332,7 @@ set **Diagonal buttons for emulators** OFF and pair again once.
 | **Two players: both phones show as "PadLink" on the PC** | The second phone must be **P2** (start screen → Player → P2). If it was paired before you changed it, remove it on the PC and pair it again. |
 | **Two players: P1 and P2 swapped in a PC game** | Connect phone 1 first, then phone 2 (Windows numbers Xbox controllers in the order they appear). Or pick the controllers in the game's settings. |
 | **Two players: the P buttons are greyed out** | You can only change the player while not connected. Close the controller, disconnect, then pick P1/P2. |
+| **Mapping: Right shows "Axis 0-" / Down shows "Axis 1-" (all minus)** | Update to **3.10.1**: Azahar takes the first value it sees as the stick's rest position, and 3.10.0 jumped straight to full. Click those boxes again and drag. |
 | **Emulator diagonal boxes show the same "Axis 1-" twice** | Turn on **☰ → Mapping** while you fill the boxes (needs Diagonal buttons ON and pairing again once): [Mapping every stick direction](#-mapping-every-stick-direction-3ds-and-other-emulators). Or use **Set Analog Stick**. |
 | **"Mapping mode needs Diagonal buttons…"** | ☰ → Settings → **Diagonal buttons for emulators → ON**, pair again once, then ☰ → Mapping. |
 | **The character only walks in 8 directions / can't walk slowly** | Mapping mode is still on (orange bar): ☰ → **Map ON** to switch it off. Or the emulator's 8 boxes were filled one by one: use **Set Analog Stick** for a smooth stick. |
@@ -377,8 +379,8 @@ set **Diagonal buttons for emulators** OFF and pair again once.
 
 ---
 
-**Version 3.10.0** (phone) and **PadLink Bridge 1.3.0** (PC). Phone: 399 automated tests (398 passed,
-1 skipped). PC: 83 automated tests (all passed).
+**Version 3.10.1** (phone) and **PadLink Bridge 1.3.0** (PC). Phone: 410 automated tests (407 passed,
+3 skipped). PC: 83 automated tests (all passed).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
 - PadLink Bridge on the developer's PC with the real driver and the phone: Xbox mode on/off, and two Xbox
@@ -525,12 +527,12 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.10.0, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.10.1, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `258fd1cd4a037281cc9e466fd17a7b319d7ba7437011d0538f70de4b17a686e6`
+SHA-256: `52107c1be92c52511ac6fa0b6ac9742eec730b0d2538d9444526f72c4d7a4478`
 
 ### 💻 2. PC app: only for PC games and ports
 

@@ -40,6 +40,18 @@ object StickMapping {
         return sector(deg)
     }
 
+    /**
+     * 3.10.1: a straight direction rises in steps instead of jumping to full. Emulators like Azahar take the
+     * FIRST value they see on an axis as its rest position: a jump 0 → full made them think the axis rests at
+     * full, and they recorded the RELEASE (back to 0) as the opposite direction ("Right" became "Axis 0-").
+     * Step 1 (20 %) is clearly near the middle, step 2 (80 %) is clearly pressed but not at the very end (so
+     * it cannot look like a digital trigger), step 3 is full.
+     */
+    val RAMP = floatArrayOf(0.2f, 0.8f, 1f)
+    const val RAMP_STEP_MS = 50L
+
+    fun isStraight(h: Hat) = h == Hat.LEFT || h == Hat.RIGHT || h == Hat.UP || h == Hat.DOWN
+
     fun isDiagonal(h: Hat) = h == Hat.UP_LEFT || h == Hat.UP_RIGHT || h == Hat.DOWN_LEFT || h == Hat.DOWN_RIGHT
 
     /** Axis values for a STRAIGHT direction (diagonals and neutral send no axis movement). */
