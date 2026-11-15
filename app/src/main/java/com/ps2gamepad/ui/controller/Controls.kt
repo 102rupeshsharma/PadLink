@@ -81,7 +81,47 @@ private fun rememberHaptic(): () -> Unit {
 private fun Modifier.inputIfInteractive(resetKey: Int, onChange: (List<TrackedPointer>, Long) -> Unit): Modifier =
     if (LocalControlStyle.current.interactive) this.systemGestureExclusion().trackPointers(resetKey, onChange) else this
 
-enum class KeyShape { ROUNDED, PILL, CIRCLE }
+/** How a key is outlined inside its box. SQUARE and BAR are the user-chosen shapes (3.11.0). */
+enum class KeyShape { ROUNDED, PILL, CIRCLE, SQUARE, BAR }
+
+/** The user's shape choice → how it is drawn; null keeps [default]. */
+fun com.ps2gamepad.model.ButtonShape?.keyShapeOr(default: KeyShape): KeyShape = when (this) {
+    null -> default
+    com.ps2gamepad.model.ButtonShape.CIRCLE -> KeyShape.CIRCLE
+    com.ps2gamepad.model.ButtonShape.SQUARE -> KeyShape.SQUARE
+    com.ps2gamepad.model.ButtonShape.RECTANGLE -> KeyShape.BAR
+}
+
+/**
+ * The outline of a key of [shape] inside this canvas (the control's box, minus [inset]). The box and the touch
+ * area never change; only the outline does:
+ *  - CIRCLE: the largest circle; SQUARE: the largest rounded square, centred;
+ *  - BAR (rectangle): the full width; in a squarish box it is a wide bar half as tall, so it reads as a rectangle.
+ */
+fun androidx.compose.ui.graphics.drawscope.DrawScope.keyPath(shape: KeyShape, inset: Float): Path {
+    val w = size.width - 2 * inset
+    val h = size.height - 2 * inset
+    return when (shape) {
+        KeyShape.CIRCLE -> circlePath(center, size.minDimension / 2 - inset)
+        KeyShape.SQUARE -> {
+            val s = minOf(w, h)
+            roundRectPath(Offset((size.width - s) / 2, (size.height - s) / 2), Size(s, s), s * 0.18f)
+        }
+        KeyShape.BAR -> {
+            val bh = if (w >= h * 1.3f) h else minOf(h, w * 0.5f)
+            roundRectPath(Offset(inset, (size.height - bh) / 2), Size(w, bh), bh * 0.3f)
+        }
+        KeyShape.PILL, KeyShape.ROUNDED -> roundRectPath(Offset(inset, inset), Size(w, h), if (shape == KeyShape.PILL) h / 2 else h * 0.3f)
+    }
+}
+
+/** Longer own texts get a smaller font so they fit. */
+fun fitText(text: String, base: TextUnit): TextUnit = when {
+    text.length >= 5 -> base * 0.62f
+    text.length == 4 -> base * 0.72f
+    text.length == 3 -> base * 0.85f
+    else -> base
+}
 
 /** Any single digital button: held while at least one of its own fingers is down. */
 @Composable
@@ -99,6 +139,8 @@ fun DigitalButton(
     faceIndex: Int = -1,
     /** Ring colour override (combo buttons). */
     accent: Color? = null,
+    /** 3.11.0: the user's own text; replaces the label (and the PlayStation symbol) when set. */
+    customLabel: String? = null,
 ) {
     var pressed by remember(resetKey) { mutableStateOf(false) }
     val haptic = rememberHaptic()
@@ -124,21 +166,17 @@ fun DigitalButton(
         Canvas(Modifier.fillMaxSize()) {
             val d = neuDepth(size)
             val inset = d * 0.8f
-            val path = when (shape) {
-                KeyShape.CIRCLE -> circlePath(center, size.minDimension / 2 - inset)
-                KeyShape.PILL, KeyShape.ROUNDED -> {
-                    val sz = Size(size.width - 2 * inset, size.height - 2 * inset)
-                    roundRectPath(Offset(inset, inset), sz, if (shape == KeyShape.PILL) sz.height / 2 else sz.height * 0.3f)
-                }
-            }
-            neuPath(path, neu, pressed, d, accent = ringColor, style = style.buttonStyle)
-            if (style.showLabels && faceIndex >= 0 && style.faceLabels == FaceLabels.PLAYSTATION) {
+            neuPath(keyPath(shape, inset), neu, pressed, d, accent = ringColor, style = style.buttonStyle)
+            if (style.showLabels && customLabel == null && faceIndex >= 0 && style.faceLabels == FaceLabels.PLAYSTATION) {
                 drawFaceMark(faceIndex, center, size.minDimension / 2 - inset, faceColor!!)
             }
         }
-        if (style.showLabels && !(faceIndex >= 0 && style.faceLabels == FaceLabels.PLAYSTATION)) {
-            val text = if (faceIndex >= 0) FaceColors.text(style.faceLabels, faceIndex) else label
-            Text(text, color = faceColor ?: if (pressed) skin.labelPressed else skin.label, fontSize = fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
+        if (style.showLabels && (customLabel != null || !(faceIndex >= 0 && style.faceLabels == FaceLabels.PLAYSTATION))) {
+            val text = customLabel ?: if (faceIndex >= 0) FaceColors.text(style.faceLabels, faceIndex) else label
+            // own texts, and any text in a round or square key (e.g. START as a circle), shrink to fit
+            val fit = customLabel != null || shape == KeyShape.CIRCLE || shape == KeyShape.SQUARE
+            Text(text, color = faceColor ?: if (pressed) skin.labelPressed else skin.label,
+                fontSize = if (fit) fitText(text, fontSize) else fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
@@ -365,6 +403,8 @@ fun ComboButton(
     label: String,
     fontSize: TextUnit,
     modifier: Modifier = Modifier,
+    /** 3.11.0: the user's own shape (default: rounded). */
+    shape: KeyShape = KeyShape.ROUNDED,
 ) {
     var pressed by remember(resetKey) { mutableStateOf(false) }
     var playing by remember(resetKey) { mutableStateOf(false) }
@@ -418,8 +458,7 @@ fun ComboButton(
         Canvas(Modifier.fillMaxSize()) {
             val d = neuDepth(size)
             val inset = d * 0.8f
-            val sz = Size(size.width - 2 * inset, size.height - 2 * inset)
-            neuPath(roundRectPath(Offset(inset, inset), sz, sz.height * 0.3f), neu, pressed || playing, d, accent = COMBO_COLOR, style = style.buttonStyle)
+            neuPath(keyPath(shape, inset), neu, pressed || playing, d, accent = COMBO_COLOR, style = style.buttonStyle)
         }
         if (style.showLabels) {
             Text(label, color = if (style.buttonStyle == ButtonStyle.REAL || style.buttonStyle == ButtonStyle.GLOSSY) COMBO_COLOR else neu.label, fontSize = fontSize,
@@ -441,6 +480,9 @@ fun StickDirectionButton(
     resetKey: Int,
     fontSize: TextUnit,
     modifier: Modifier = Modifier,
+    /** 3.11.0: the user's own text and shape. */
+    customLabel: String? = null,
+    shape: KeyShape = KeyShape.CIRCLE,
 ) {
     var pressed by remember(resetKey) { mutableStateOf(false) }
     val haptic = rememberHaptic()
@@ -471,11 +513,12 @@ fun StickDirectionButton(
     ) {
         Canvas(Modifier.fillMaxSize()) {
             val d = neuDepth(size)
-            neuPath(circlePath(center, size.minDimension / 2 - d * 0.8f), neu, pressed, d, accent = STICK_DIR_COLOR, style = style.buttonStyle)
+            neuPath(keyPath(shape, d * 0.8f), neu, pressed, d, accent = STICK_DIR_COLOR, style = style.buttonStyle)
         }
         if (style.showLabels) {
-            Text(direction.label, color = if (style.buttonStyle == ButtonStyle.REAL || style.buttonStyle == ButtonStyle.GLOSSY) STICK_DIR_COLOR else neu.label,
-                fontSize = fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
+            val text = customLabel ?: direction.label
+            Text(text, color = if (style.buttonStyle == ButtonStyle.REAL || style.buttonStyle == ButtonStyle.GLOSSY) STICK_DIR_COLOR else neu.label,
+                fontSize = if (customLabel != null) fitText(text, fontSize) else fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }

@@ -1,5 +1,23 @@
 # Release notes
 
+## PadLink 3.11.0 (versionCode 31), 2026-11-16: your own button text, shapes, delete any button
+
+- **Own text** (requested): Edit → tap a button → **Text**, up to 6 characters (e.g. L1 → "JUMP"); **Reset**
+  gives the normal name back. Works on L1/L2/R1/R2, L3/R3, Select/Start, the four face buttons (replaces the
+  PlayStation symbol too) and every added button, combo and stick direction button. Longer texts get a
+  smaller font so they fit.
+- **Shapes**: Edit → tap a button → **○ Circle / □ Square / ▭ Rectangle** (the highlighted one is its normal
+  shape; picking it again goes back to normal). Only the outline is drawn differently: place, size, touch area
+  and the signal stay. In a square box Rectangle is a wide bar; any text in a circle or square shrinks to fit.
+- **Delete any button**: Edit → tap it → red **✕** (also the D-pad and the sticks); **Deleted: + L2** brings it
+  back (uses the per-layout hiding of 3.8.0, so a deleted button is never drawn and can't be pressed).
+- All of it is saved per layout. Settings from older versions load unchanged.
+- Tests: ButtonLookModelTest (5: text cleaning, only real buttons, saved per layout, added buttons, old
+  settings), ButtonLookUiTest (12: rename L1 and it still sends L1, 6-character limit, Reset, own text instead
+  of the PlayStation symbol, shapes keep the box and the signal, every shape on all 12 buttons still sends its
+  button, every shape in every style, delete L1/L2/R1/R2 with ✕ and bring L2 back, add a button with own text
+  and shape, Cancel discards, D-pad/sticks delete only, each layout keeps its own). Checked on screenshots.
+
 ## PadLink 3.10.1 (versionCode 30), 2026-11-16: Mapping mode records the right sign in Azahar
 
 - **Fix (reported with a screenshot): in Azahar, Right recorded "Axis 0-" and Down "Axis 1-"** (C-Stick:

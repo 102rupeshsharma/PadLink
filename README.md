@@ -19,7 +19,8 @@ Both downloads are at the [bottom of this page](#-download).
 - **Combo buttons**: press several buttons together (e.g. L1+R1), or play a sequence (e.g. ↓ ↘ → + X)
 - **Gyro aiming** for shooters: turn the phone to aim. Switch it with **Gyro ON/OFF** in the controller's ☰ menu
 - **Pure black background**: on AMOLED phones black pixels are switched off, which saves battery
-- Move, resize, add and **hide** buttons freely, with up to **10 loadouts** (one per game, each with its own settings)
+- Move, resize, add and **delete** buttons freely, give any button **your own text** (e.g. L1 → "JUMP") and a
+  **shape** (circle, square or rectangle), with up to **10 loadouts** (one per game, each with its own settings)
 - **Stick direction buttons** (↖ ↗ ↙ ↘ and ↑ ↓ ← →) for both sticks, and optional **diagonal buttons** so
   emulators (e.g. 3DS) can bind every stick direction to its own input
 - **Two players**: two phones on one PC, e.g. Mortal Kombat player 1 vs player 2 ([guide](#-two-players-two-phones-one-pc))
@@ -155,8 +156,15 @@ Scroll down inside the Settings panel to see everything. Tap **Close** to go bac
   diagonal pushes both axes fully), in every game. Releasing it gives the stick back to your thumb.
   To bind each diagonal separately in an emulator, see
   [Mapping every stick direction](#-mapping-every-stick-direction-3ds-and-other-emulators).
-- **Hide a button you don't need:** **Settings → Buttons on screen** → tap it (e.g. L2, R2). Or in
-  **Edit**, tap the control → **Hide**. Show it again in Settings.
+- **Delete a button you don't need** (e.g. L1, L2, R1, R2): **Edit** → tap it → red **✕**. It disappears and
+  can't be pressed. To bring it back: **Edit** → **Deleted: + L2** (or **Settings → Buttons on screen**).
+  Deleting only removes it from this layout; the D-pad and the sticks can be deleted too.
+- **Your own text on a button:** **Edit** → tap the button → type in **Text** (up to 6 characters, e.g.
+  "JUMP", "FIRE", "KICK"). **Reset** gives the normal name back. Works on every button, including the face
+  buttons and added buttons. Only the text changes: the button sends the same signal, so emulator bindings stay.
+- **Button shape:** **Edit** → tap the button → **Shape**: **○ Circle**, **□ Square** or **▭ Rectangle**. The
+  highlighted one is the button's normal shape. Only the outline changes; the button's place, size and touch
+  area stay the same (use the blue corner to make it bigger).
 - **Delete an added button or combo:** **Edit** → tap it → red **✕** → **Save**.
 - **One setup per game:** **Open Controller → New loadout** (up to **10**). Each keeps its own layout,
   hidden buttons, button style, face labels (e.g. △ ○ ✕ □ in one, Y B A X in another), sizes, combos,
@@ -376,11 +384,13 @@ set **Diagonal buttons for emulators** OFF and pair again once.
 | ![Hidden and diagonals](docs/screenshots/21_hidden_and_diagonals.png) | ![Stick direction editor](docs/screenshots/22_edit_stick_direction.png) |
 | **Buttons on screen (Settings)** | **A diagonal as its own button (Edit)** |
 | ![Buttons on screen](docs/screenshots/23_settings_buttons_on_screen.png) | ![Own button](docs/screenshots/24_edit_diagonal_own_button.png) |
+| **Own text and shapes, L2 / R2 deleted** | **Text, shape and delete in Edit** |
+| ![Own text and shapes](docs/screenshots/25_own_text_and_shapes.png) | ![Edit text and shape](docs/screenshots/26_edit_text_and_shape.png) |
 
 ---
 
-**Version 3.10.1** (phone) and **PadLink Bridge 1.3.0** (PC). Phone: 410 automated tests (407 passed,
-3 skipped). PC: 83 automated tests (all passed).
+**Version 3.11.0** (phone) and **PadLink Bridge 1.3.0** (PC). Phone: 427 automated tests (426 passed,
+1 skipped). PC: 83 automated tests (all passed).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
 - PadLink Bridge on the developer's PC with the real driver and the phone: Xbox mode on/off, and two Xbox
@@ -527,12 +537,12 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.10.1, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.11.0, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `52107c1be92c52511ac6fa0b6ac9742eec730b0d2538d9444526f72c4d7a4478`
+SHA-256: `88e56933f30b5bacb82a66221a6504303f5665f5314fae54b55332055d3e9518`
 
 ### 💻 2. PC app: only for PC games and ports
 

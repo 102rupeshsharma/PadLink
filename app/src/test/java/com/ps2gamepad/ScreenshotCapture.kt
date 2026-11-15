@@ -116,14 +116,33 @@ class ScreenshotCapture {
         rule.onNodeWithTag("dir_mode_button").performClick() // 3.9.0: own button for emulator diagonal slots
         rule.runOnIdle { vm.setDiagonalButtons(true) }
         shoot("24_edit_diagonal_own_button")
-        rule.runOnIdle { vm.setDiagonalButtons(false) }
+        rule.runOnIdle {
+            vm.setDiagonalButtons(false)
+            // switching the setting stops the gamepad; reconnect the mock so later pictures show "connected"
+            vm.register(); hid.emit(HidEvent.AppStatusChanged(true)); hid.emit(HidEvent.ConnectionChanged(host, HidStateReducer.STATE_CONNECTED))
+        }
         rule.runOnIdle { vm.setEditMode(false) }
         rule.onNodeWithTag("menuButton").performClick()
         rule.onNodeWithTag("chip_Settings").performClick()
         rule.onNodeWithTag("show_SQUARE").performScrollTo()
         shoot("23_settings_buttons_on_screen")
-        rule.onNodeWithTag("chip_Close").performClick()
+        rule.onNodeWithTag("chip_Close").performScrollTo().performClick()
         rule.runOnIdle { vm.setControlHidden(com.ps2gamepad.model.ControlId.L2, false); vm.setControlHidden(com.ps2gamepad.model.ControlId.R2, false); vm.saveLayout(emptyMap(), emptyList()) }
+        // 3.11.0: own text and shapes, L2/R2 deleted
+        rule.runOnIdle {
+            vm.setControlHidden(com.ps2gamepad.model.ControlId.L2, true); vm.setControlHidden(com.ps2gamepad.model.ControlId.R2, true)
+            vm.setControlLabel(com.ps2gamepad.model.ControlId.L1, "BLOCK"); vm.setControlShape(com.ps2gamepad.model.ControlId.L1, com.ps2gamepad.model.ButtonShape.SQUARE)
+            vm.setControlLabel(com.ps2gamepad.model.ControlId.R1, "FIRE"); vm.setControlShape(com.ps2gamepad.model.ControlId.R1, com.ps2gamepad.model.ButtonShape.CIRCLE)
+            vm.setControlLabel(com.ps2gamepad.model.ControlId.TRIANGLE, "KICK")
+            vm.setControlShape(com.ps2gamepad.model.ControlId.CROSS, com.ps2gamepad.model.ButtonShape.SQUARE)
+            vm.setControlShape(com.ps2gamepad.model.ControlId.CIRCLE, com.ps2gamepad.model.ButtonShape.RECTANGLE)
+            vm.setControlShape(com.ps2gamepad.model.ControlId.START, com.ps2gamepad.model.ButtonShape.CIRCLE)
+        }
+        shoot("25_own_text_and_shapes")
+        rule.runOnIdle { vm.setEditMode(true) }
+        rule.onNodeWithTag("edit_L1").performClick()
+        shoot("26_edit_text_and_shape")
+        rule.runOnIdle { vm.setEditMode(false); vm.resetAppearance() }
         val combos = listOf(
             ExtraButton("c1", ControllerButton.CROSS, 0.5f, 0.2f, steps = listOf(ComboStep(setOf(ControllerButton.L1, ControllerButton.R1)))),
             ExtraButton("c2", ControllerButton.CROSS, 0.5f, 0.62f, steps = listOf(
