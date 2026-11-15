@@ -112,6 +112,8 @@ internal fun BoxScope.QuickMenu(
     liveOn: Boolean,
     gyroAvailable: Boolean,
     gyroOn: Boolean,
+    mappingOn: Boolean,
+    onMapping: () -> Unit,
     onHome: () -> Unit,
     onLive: () -> Unit,
     onEdit: () -> Unit,
@@ -126,7 +128,7 @@ internal fun BoxScope.QuickMenu(
             .testTag("menuScrim")
     )
     Column(
-        Modifier.align(Alignment.TopCenter).padding(top = 10.dp).width(470.dp)
+        Modifier.align(Alignment.TopCenter).padding(top = 10.dp).width(540.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(Brush.verticalGradient(listOf(CardTop, CardBottom)))
             .border(1.dp, Brush.verticalGradient(listOf(Color(0x55FFFFFF), Color(0x0FFFFFFF))), RoundedCornerShape(24.dp))
@@ -156,6 +158,7 @@ internal fun BoxScope.QuickMenu(
             MenuTile("Edit", "chip_Edit", onClick = onEdit) { editIcon(it) }
             MenuTile("Settings", "chip_Settings", onClick = onSettings) { gearIcon(it) }
             if (gyroAvailable) MenuTile(if (gyroOn) "Gyro ON" else "Gyro OFF", "chip_gyro", on = gyroOn, onClick = onGyro) { gyroIcon(it) }
+            MenuTile(if (mappingOn) "Map ON" else "Mapping", "chip_Mapping", on = mappingOn, onClick = onMapping) { mapIcon(it) }
         }
     }
 }
@@ -265,6 +268,18 @@ private fun DrawScope.gearIcon(color: Color) {
         val from = Offset(c.x + (r * 1.25f) * kotlin.math.cos(a).toFloat(), c.y + (r * 1.25f) * kotlin.math.sin(a).toFloat())
         val to = Offset(c.x + (r * 1.75f) * kotlin.math.cos(a).toFloat(), c.y + (r * 1.75f) * kotlin.math.sin(a).toFloat())
         drawLine(color, from, to, size.minDimension * 0.12f, StrokeCap.Round)
+    }
+}
+
+/** Mapping mode: a stick with 8 direction ticks. */
+private fun DrawScope.mapIcon(color: Color) {
+    val c = center; val r = size.minDimension * 0.18f
+    drawCircle(color, radius = r, center = c)
+    for (i in 0 until 8) {
+        val a = Math.toRadians(i * 45.0)
+        val from = Offset(c.x + r * 1.7f * kotlin.math.cos(a).toFloat(), c.y + r * 1.7f * kotlin.math.sin(a).toFloat())
+        val to = Offset(c.x + r * 2.6f * kotlin.math.cos(a).toFloat(), c.y + r * 2.6f * kotlin.math.sin(a).toFloat())
+        drawLine(color, from, to, size.minDimension * 0.09f, StrokeCap.Round)
     }
 }
 

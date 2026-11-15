@@ -270,31 +270,47 @@ and **Up Left, Up Right, Down Left, Down Right**, for the Circle Pad and the C-S
 left stick (Circle Pad), then again with the right stick (C-Stick). The whole stick is bound and every
 direction, diagonals included, just works.
 
-**Want each diagonal on its own input?** A stick diagonal is two axes at once, and each emulator box stores
-only one input, so pressing a diagonal into an "Up Left" box gives "Axis 1-" (the same as Up Right). For that
-case PadLink can give every diagonal its **own button**:
+**Want each of the 8 directions on its own input?** Normally a stick diagonal is two axes at once, and each
+emulator box stores only one input, so dragging up-left into an "Up Left" box gives "Axis 1-" (the same as Up
+Right). PadLink's **Mapping mode** fixes that: while it is on, dragging a joystick in any of the 8 directions
+sends exactly **one** code, and every code is different:
 
-| Stick | ↖ Up Left | ↗ Up Right | ↙ Down Left | ↘ Down Right |
-|---|---|---|---|---|
-| Left stick (Circle Pad) | Button 12 | Button 13 | Button 14 | Button 15 |
-| Right stick (C-Stick) | Button 16 | Button 17 | Button 18 | Button 19 |
+| Drag the joystick | Left joystick (Circle Pad) | Right joystick (C-Stick) |
+|---|---|---|
+| ← Left | Axis 0− | Axis 2− |
+| → Right | Axis 0+ | Axis 2+ |
+| ↑ Up | Axis 1− | Axis 3− |
+| ↓ Down | Axis 1+ | Axis 3+ |
+| ↖ Up Left | Button 12 | Button 16 |
+| ↗ Up Right | Button 13 | Button 17 |
+| ↙ Down Left | Button 14 | Button 18 |
+| ↘ Down Right | Button 15 | Button 19 |
 
-Straight directions already have their own inputs: left stick **Axis 0− / 0+ / 1− / 1+**, right stick
-**Axis 2− / 2+ / 3− / 3+**. Together all 16 directions are different.
-
+**First time only:**
 1. In the controller: **☰ → Settings → Diagonal buttons for emulators → ON** (one setting for all layouts).
 2. **Pair again once:** Windows learns a controller's buttons when pairing. On the PC: **Bluetooth & devices
    → PadLink → Remove device**, then pair again (Step 2) and **Connect**. Your existing emulator mappings
    stay: buttons 1-12 and the axes keep their numbers.
-3. **☰ → Edit → + Stick ↗**, pick the stick and the diagonal, tap **Own button**, **Save**. Make one for each
-   diagonal you need (up to 8).
-4. In the emulator: click the **Up Left** box, press **L↖** on the phone → it shows **Button 12**. Do the
-   same for the others.
 
-With **Own button**, the button sends only its diagonal button (the stick does not move), which is what the
-emulator's diagonal box needs. With **Moves the stick** it works in any game without binding. PadLink Bridge
-1.3.0 and newer turns a diagonal button into a real stick diagonal for Xbox games. To go back: set it **OFF**
-and pair again once.
+**Every time you map controls:**
+1. **☰ → Mapping**. An orange **MAPPING MODE** bar appears at the bottom.
+2. In the emulator click a box (e.g. Circle Pad **Up Left**), then **drag the left joystick up-left** and let
+   go. It shows **Button 12**. Do the same for all 8 boxes of the Circle Pad (left joystick) and the C-Stick
+   (right joystick).
+3. **☰ → Map ON** to switch it off and play. Leaving the controller also switches it off, and it is never
+   on when the app starts.
+
+While mapping, a light touch sends nothing (push the joystick at least halfway), a little wobble near the
+edge between two directions does not change the code, the gyro is ignored, and all other buttons work as
+usual. With Mapping mode off the joysticks are the normal smooth analog sticks.
+
+Tip: an emulator whose 8 boxes are filled one by one treats the stick as 8-way (no slow walking with a
+light touch; the emulator's **Modifier Scale** does slow walking). For a smooth analog stick use **Set
+Analog Stick** instead.
+
+The diagonal buttons also work as **stick direction buttons** (☰ → Edit → + Stick ↗ → **Own button**).
+PadLink Bridge 1.3.0 and newer turns a diagonal button into a real stick diagonal for Xbox games. To go back:
+set **Diagonal buttons for emulators** OFF and pair again once.
 
 ## 🛠️ Troubleshooting
 
@@ -315,7 +331,9 @@ and pair again once.
 | **Two players: both phones show as "PadLink" on the PC** | The second phone must be **P2** (start screen → Player → P2). If it was paired before you changed it, remove it on the PC and pair it again. |
 | **Two players: P1 and P2 swapped in a PC game** | Connect phone 1 first, then phone 2 (Windows numbers Xbox controllers in the order they appear). Or pick the controllers in the game's settings. |
 | **Two players: the P buttons are greyed out** | You can only change the player while not connected. Close the controller, disconnect, then pick P1/P2. |
-| **Emulator diagonal boxes show the same "Axis 1-" twice** | A stick diagonal is two axes and each box stores one. Use **Set Analog Stick** instead, or give each diagonal its own button: [Mapping every stick direction](#-mapping-every-stick-direction-3ds-and-other-emulators). |
+| **Emulator diagonal boxes show the same "Axis 1-" twice** | Turn on **☰ → Mapping** while you fill the boxes (needs Diagonal buttons ON and pairing again once): [Mapping every stick direction](#-mapping-every-stick-direction-3ds-and-other-emulators). Or use **Set Analog Stick**. |
+| **"Mapping mode needs Diagonal buttons…"** | ☰ → Settings → **Diagonal buttons for emulators → ON**, pair again once, then ☰ → Mapping. |
+| **The character only walks in 8 directions / can't walk slowly** | Mapping mode is still on (orange bar): ☰ → **Map ON** to switch it off. Or the emulator's 8 boxes were filled one by one: use **Set Analog Stick** for a smooth stick. |
 | **After turning Diagonal buttons ON (or OFF) the controller does nothing** | Pair again once: on the PC remove PadLink in Bluetooth & devices, pair, then Connect. |
 | **Two players: second phone does nothing in PCSX2** | Set **Controller Port 2** to DualShock 2 and bind its buttons with the second phone in your hand. |
 | **Character keeps moving after I let go of the stick** | Update to **3.2.0** or newer (fixed: the app now sends stick movement at a rate the Bluetooth link can carry, and "stop" always goes first). If it still happens, move the phone closer to the laptop and turn off other Bluetooth devices you aren't using. |
@@ -359,7 +377,7 @@ and pair again once.
 
 ---
 
-**Version 3.9.0** (phone) and **PadLink Bridge 1.3.0** (PC). Phone: 370 automated tests (369 passed,
+**Version 3.10.0** (phone) and **PadLink Bridge 1.3.0** (PC). Phone: 399 automated tests (398 passed,
 1 skipped). PC: 83 automated tests (all passed).
 - Confirmed on real hardware by the developer (POCO F6 + Windows 11): registration, pairing,
   Windows game controller test (`joy.cpl`), PCSX2 with manual binding.
@@ -507,12 +525,12 @@ There are **two apps**. Download the phone app on your **phone** and the PC app 
 
 ### 📱 1. Phone app: needed by everyone
 
-### **[⬇️ Download PadLink for Android (v3.9.0, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
+### **[⬇️ Download PadLink for Android (v3.10.0, 2.7 MB)](https://raw.githubusercontent.com/102rupeshsharma/PS2_Emulator/main/download/PadLink.apk)**
 
 Tap the link **on your Android phone**, open the downloaded file and tap **Install**. It installs over an
 older version, and your loadouts are kept.
 
-SHA-256: `60de30f05e4b5ac41210b6e42d5031a2bfd014eb2154b8b9a1369c659dd3b235`
+SHA-256: `258fd1cd4a037281cc9e466fd17a7b319d7ba7437011d0538f70de4b17a686e6`
 
 ### 💻 2. PC app: only for PC games and ports
 

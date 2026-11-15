@@ -128,6 +128,9 @@ fun ControllerScreen(vm: MainViewModel) {
     var showOverlay by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    val mapping by vm.mappingMode.collectAsStateWithLifecycle()
+    var mappingNeedsSetting by remember { mutableStateOf(false) }
+    LaunchedEffect(mappingNeedsSetting) { if (mappingNeedsSetting) { delay(6000); mappingNeedsSetting = false } }
 
     // Back: press twice within 2 s to leave, so a stray edge swipe cannot end a game session.
     var lastBack by remember { mutableLongStateOf(0L) }
@@ -167,6 +170,23 @@ fun ControllerScreen(vm: MainViewModel) {
                     .background(Palette.Bad.copy(alpha = 0.85f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }
+        // 3.10.0 Mapping mode: always visible while on, so nobody plays with 8-way sticks by accident
+        if (mapping) {
+            Text(
+                "MAPPING MODE: each stick direction sends its own code (↖ ↗ ↙ ↘ = Button 12-15 left, 16-19 right). ☰ → Mapping to play normally.",
+                color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp).testTag("mappingBanner")
+                    .background(Palette.Warn, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
+        if (mappingNeedsSetting) {
+            Text(
+                "Mapping mode needs ☰ → Settings → Diagonal buttons for emulators ON (then pair again once).",
+                color = Color.White, fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.Center).testTag("mappingUnavailable")
+                    .background(Color(0xDD000000), RoundedCornerShape(8.dp)).padding(10.dp),
+            )
+        }
         if (backHint) {
             Text(
                 "Press back again to leave the controller", color = Color.White, fontSize = 12.sp,
@@ -182,6 +202,11 @@ fun ControllerScreen(vm: MainViewModel) {
             liveOn = showOverlay,
             gyroAvailable = vm.gyroAvailable,
             gyroOn = profile.gyroAim.enabled,
+            mappingOn = mapping,
+            onMapping = {
+                showMenu = false
+                if (!vm.setMappingMode(!mapping)) mappingNeedsSetting = true
+            },
             onHome = { showMenu = false; vm.navigate(Screen.HOME) },
             onLive = { showMenu = false; showOverlay = !showOverlay },
             onEdit = { showMenu = false; vm.setEditMode(true) },

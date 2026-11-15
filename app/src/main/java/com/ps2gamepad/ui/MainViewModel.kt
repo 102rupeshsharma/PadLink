@@ -667,8 +667,29 @@ class MainViewModel(
      * 3.9.0: "Diagonal buttons for emulators" on/off. The new controller description is only used from the
      * next registration, so a running gamepad is stopped (Connect again) and the PC must pair again once.
      */
+    private val _mappingMode = MutableStateFlow(false)
+    /** 3.10.0: Mapping mode (session only, never saved: the app always starts with normal sticks). */
+    val mappingMode: StateFlow<Boolean> = _mappingMode.asStateFlow()
+
+    /**
+     * Mapping mode on/off. Needs "Diagonal buttons for emulators" (diagonals have no code without it):
+     * returns false and stays off when that setting is off.
+     */
+    fun setMappingMode(on: Boolean): Boolean {
+        if (on && !profiles.value.diagonalButtons) {
+            log.add("Mapping mode needs Diagonal buttons for emulators (Settings) and pairing again once")
+            return false
+        }
+        if (_mappingMode.value == on) return true
+        _mappingMode.value = on
+        input.setMappingMode(on)
+        log.add(if (on) "Mapping mode ON: every stick direction sends its own code" else "Mapping mode OFF: normal sticks")
+        return true
+    }
+
     fun setDiagonalButtons(on: Boolean) {
         if (profiles.value.diagonalButtons == on) return
+        if (!on) setMappingMode(false)
         settings.update { it.copy(diagonalButtons = on) }
         hid.setExtendedReports(on)
         input.extendedReports = on
@@ -788,6 +809,7 @@ class MainViewModel(
     val lastKnownHostName: String? get() = lastHost?.displayName ?: profiles.value.lastConnection?.hostName
 
     fun navigate(to: Screen) {
+        if (to != Screen.CONTROLLER) setMappingMode(false) // never left on by accident: back to normal sticks
         if (to != _screen.value) input.releaseAll()
         if (to != Screen.CONTROLLER) _editMode.value = false
         if (to == Screen.CONTROLLER && _session.value == null) _session.value = Session(uptime(), batteryPercent())
