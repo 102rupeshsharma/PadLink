@@ -38,8 +38,20 @@ If joy.cpl does not work, PCSX2 will not either. See BLUETOOTH_SETUP.md, trouble
    - Enable the **SDL** input source. Leave "SDL raw input" off at first.
    - If the device is not listed under SDL, also enable **DInput**.
 3. **Controller Port 1 → Controller type: DualShock 2.**
-4. The pad is generic and probably not in SDL's controller database, so "Automatic Mapping" may
-   do nothing or map wrongly. **Bind manually:** click each binding and press the matching phone control.
+4. The pad is generic and not in SDL's controller database, so "Automatic Mapping" says
+   *"No generic bindings were generated for device 'SDL-0'"* and no button works until it is bound.
+
+   **Make Automatic Mapping work (once per PC):** close PCSX2, copy
+   `C:\Program Files\PCSX2\resources\game_controller_db.txt` to `Documents\PCSX2\game_controller_db.txt`
+   and add this line at the end of the copy (one line, checked with PCSX2 2.x / SDL3 on Windows 11):
+
+   ```
+   05000000e00000000000000000000000,PadLink Gamepad,a:b1,b:b2,x:b0,y:b3,leftshoulder:b4,rightshoulder:b5,lefttrigger:b6,righttrigger:b7,back:b8,start:b9,leftstick:b10,rightstick:b11,dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8,leftx:a0,lefty:a1,rightx:a2,righty:a3,platform:Windows,
+   ```
+
+   Start PCSX2 again: Automatic Mapping → "SDL-0: PadLink Gamepad" now fills every binding.
+
+   **Or bind manually:** click each binding and press the matching phone control.
 
    | PCSX2 binding | Press on the phone |
    |---|---|
