@@ -37,6 +37,11 @@ interface LaptopScanner {
      * forgets the laptop in Android's Bluetooth settings.
      */
     fun forget(address: String, onResult: (Boolean) -> Unit): Boolean = false
+    /**
+     * [listener] (main thread) gets the address of every device that becomes paired from now on, also when
+     * the pairing was started from the laptop's Bluetooth settings.
+     */
+    fun onPaired(listener: (String) -> Unit) {}
 }
 
 @SuppressLint("MissingPermission") // every call is guarded by try/catch SecurityException
@@ -52,6 +57,12 @@ class AndroidLaptopScanner(
     private val forgetting = HashMap<String, (Boolean) -> Unit>()
     private val main = android.os.Handler(android.os.Looper.getMainLooper())
     private var registered = false
+    private var pairedListener: ((String) -> Unit)? = null
+
+    override fun onPaired(listener: (String) -> Unit) {
+        pairedListener = listener
+        try { ensureRegistered() } catch (_: Exception) {}
+    }
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
@@ -76,6 +87,7 @@ class AndroidLaptopScanner(
                         state == BluetoothDevice.BOND_NONE && prev == BluetoothDevice.BOND_BONDING -> pending.remove(d.address)?.invoke(false)
                     }
                     if (state == BluetoothDevice.BOND_NONE) forgetting.remove(d.address)?.invoke(true)
+                    if (state == BluetoothDevice.BOND_BONDED) pairedListener?.invoke(d.address)
                 }
             }
         }

@@ -76,6 +76,10 @@ class FakeLaptopScanner : com.ps2gamepad.bluetooth.LaptopScanner {
     override fun pair(address: String, onResult: (Boolean) -> Unit): Boolean { pairRequests += address; waiting[address] = onResult; return true }
     /** The user confirmed (or refused) the pairing code. */
     fun finishPairing(address: String, ok: Boolean) { waiting.remove(address)?.invoke(ok) }
+    private var pairedListener: ((String) -> Unit)? = null
+    override fun onPaired(listener: (String) -> Unit) { pairedListener = listener }
+    /** A laptop paired with the phone from the laptop's own Bluetooth settings. */
+    fun pairedFromLaptop(address: String) { pairedListener?.invoke(address) }
 
     /** false = this phone blocks apps from removing a pairing (then the user does it in Settings). */
     var canForget = true

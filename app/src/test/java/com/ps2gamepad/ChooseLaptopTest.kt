@@ -121,6 +121,71 @@ class ChooseLaptopViewModelTest {
         assertEquals(laptopB, vm.knownPc)
     }
 
+    @Test fun laptopPairedFromItsSideButNotConnectingIsConnectedFromThePhone() = runTest(dispatcher) {
+        paired = listOf(laptopA)
+        open()
+        vm.connectNow(); runCurrent(); hid.emit(HidEvent.AppStatusChanged(true)); runCurrent()
+        advanceTimeBy(2_000); runCurrent()
+        connected(laptopA)
+        vm.prepareForNewLaptop(); runCurrent()
+        disconnected(laptopA)
+        hid.connects.clear()
+        // laptop B pairs from its Bluetooth settings: the PC says "Connected", but no gamepad connection arrives
+        paired = listOf(laptopA, laptopB)
+        scanner.pairedFromLaptop(laptopB.address)
+        advanceTimeBy(MainViewModel.NEW_LAPTOP_WAIT_MS + 100); runCurrent()
+        assertEquals("the phone connects to the new laptop itself", listOf(laptopB.address), hid.connects)
+        connected(laptopB)
+        assertEquals(laptopB, vm.knownPc)
+    }
+
+    @Test fun newLaptopIsOnlyConnectedOnceTheAppIsVisibleAgainAfterThePairingDialog() = runTest(dispatcher) {
+        paired = listOf(laptopA)
+        open()
+        vm.prepareForNewLaptop(); runCurrent()
+        hid.emit(HidEvent.AppStatusChanged(true)); runCurrent()
+        val registersBefore = hid.registerCalls
+        vm.onBackground() // the pairing dialog covers the app
+        paired = listOf(laptopA, laptopB)
+        scanner.pairedFromLaptop(laptopB.address)
+        advanceTimeBy(20_000); runCurrent()
+        assertTrue("nothing is started while the app is not visible: ${hid.connects}", hid.connects.isEmpty())
+        assertEquals(registersBefore, hid.registerCalls)
+        vm.onForeground()
+        advanceTimeBy(MainViewModel.NEW_LAPTOP_WAIT_MS + 1_000); runCurrent()
+        assertEquals(listOf(laptopB.address), hid.connects)
+    }
+
+    @Test fun laptopThatConnectsByItselfAfterPairingIsNotConnectedTwice() = runTest(dispatcher) {
+        paired = listOf(laptopA)
+        open()
+        vm.prepareForNewLaptop(); runCurrent()
+        hid.emit(HidEvent.AppStatusChanged(true)); runCurrent()
+        paired = listOf(laptopA, laptopB)
+        scanner.pairedFromLaptop(laptopB.address)
+        advanceTimeBy(1_000); connected(laptopB) // Windows opens the gamepad connection itself
+        advanceTimeBy(30_000); runCurrent()
+        assertTrue("the phone must not connect on top of it: ${hid.connects}", hid.connects.isEmpty())
+        assertEquals(0, hid.disconnects)
+        assertEquals(laptopB, vm.knownPc)
+    }
+
+    @Test fun connectAfterMakingThePhoneVisibleStillTriesEveryPairedLaptop() = runTest(dispatcher) {
+        paired = listOf(laptopA)
+        open()
+        vm.connectNow(); runCurrent(); hid.emit(HidEvent.AppStatusChanged(true)); runCurrent()
+        advanceTimeBy(2_000); runCurrent()
+        connected(laptopA)
+        vm.prepareForNewLaptop(); runCurrent()
+        disconnected(laptopA)
+        paired = listOf(laptopA, laptopB)
+        vm.refreshBondedHosts()
+        hid.connects.clear()
+        vm.connectNow(); runCurrent() // home screen's Connect: A (used last) is off, B must be tried next
+        advanceTimeBy(MainViewModel.ATTEMPT_MS + 100); runCurrent()
+        assertEquals(listOf(laptopA.address, laptopB.address), hid.connects)
+    }
+
     @Test fun searchPairAndConnectFromThePhone() = runTest(dispatcher) {
         paired = listOf(laptopA)
         open()
@@ -240,5 +305,78 @@ class ChooseLaptopUiTest {
         rule.onNodeWithTag("homeAction").performClick()
         rule.onNodeWithTag("laptopVisible").performScrollTo().performClick()
         rule.runOnIdle { assertEquals(1, discoverable); assertEquals(listOf(false), hid.autoConnectFlags) }
+    }
+}
+
+/**
+ * A person adds a NEW laptop (reported: "the PC says connected, the app says connect again"). Real UI,
+ * MOCK Bluetooth: laptop A was used before; laptop B is paired from its own Bluetooth settings and, like
+ * Windows often does, never opens the gamepad connection by itself.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "w411dp-h891dp-port")
+class NewLaptopJourneyUiTest {
+    @get:Rule val rule = createComposeRule()
+    private val hid = FakeHid()
+    private val scanner = FakeLaptopScanner()
+    private val laptopA = HostDevice("AA:AA", "RUPESH-LAPTOP", isComputer = true)
+    private val laptopB = HostDevice("BB:BB", "NEW-LAPTOP", isComputer = true)
+    private var paired = listOf(laptopA)
+    private lateinit var vm: MainViewModel
+    private var discoverable = 0
+
+    private fun passTime(ms: Long) = rule.runOnIdle { org.robolectric.shadows.ShadowLooper.idleMainLooper(ms, java.util.concurrent.TimeUnit.MILLISECONDS) }
+
+    @Before fun setUp() {
+        vm = MainViewModel(hid, MutableStateFlow(BluetoothState.ENABLED), { paired }, DiagnosticLog(), emptyList(), { 0L },
+            phoneNameControl = FakePhoneName(), laptopScanner = scanner)
+        rule.setContent { App(vm, AppActions({}, {}, { discoverable++ }, {}, { granted -> granted() })) }
+        rule.runOnIdle { vm.onPermissionsChanged(true); vm.onForeground(); vm.autoStart() }
+        // the old laptop is in use
+        rule.onNodeWithTag("homeAction").performClick()
+        rule.runOnIdle { hid.emit(HidEvent.AppStatusChanged(true)) }
+        rule.runOnIdle { hid.emit(HidEvent.ConnectionChanged(laptopA, HidStateReducer.STATE_CONNECTED)) }
+        rule.onNodeWithText("Connected to RUPESH-LAPTOP ✓").assertIsDisplayed()
+    }
+
+    private fun makeVisibleAndPairFromTheNewLaptop() {
+        rule.onNodeWithText("Choose another laptop / pair a new one").performScrollTo().performClick()
+        rule.onNodeWithTag("laptopVisible").performScrollTo().performClick()
+        rule.runOnIdle { assertEquals(1, discoverable); assertEquals("the old laptop is let go", 1, hid.disconnects) }
+        rule.runOnIdle { hid.emit(HidEvent.ConnectionChanged(laptopA, HidStateReducer.STATE_DISCONNECTED)) }
+        rule.runOnIdle { hid.connects.clear(); paired = listOf(laptopA, laptopB); scanner.pairedFromLaptop(laptopB.address) }
+    }
+
+    @Test fun newLaptopPairedFromItsSideEndsConnectedInTheApp() {
+        makeVisibleAndPairFromTheNewLaptop()
+        passTime(MainViewModel.NEW_LAPTOP_WAIT_MS + 500)
+        rule.runOnIdle { assertEquals("the phone connects to the new laptop by itself", listOf("BB:BB"), hid.connects) }
+        rule.runOnIdle { hid.emit(HidEvent.ConnectionChanged(laptopB, HidStateReducer.STATE_CONNECTED)) }
+        rule.runOnIdle { assertEquals(Screen.HOME, vm.screen.value) }
+        rule.onNodeWithText("Connected to NEW-LAPTOP ✓").assertIsDisplayed()
+        rule.onNodeWithText("Open Controller").assertIsDisplayed()
+    }
+
+    @Test fun ifTheNewLaptopNeverAnswersTheAppSaysSoAndOffersPairAgain() {
+        makeVisibleAndPairFromTheNewLaptop()
+        passTime(MainViewModel.NEW_LAPTOP_WAIT_MS + MainViewModel.ATTEMPT_MS + 1_000)
+        rule.onNodeWithTag("noAnswerCard").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("NEW-LAPTOP did not answer").assertIsDisplayed()
+        rule.onNodeWithTag("retryLaptop").performScrollTo().performClick()
+        rule.runOnIdle { assertEquals(listOf("BB:BB", "BB:BB"), hid.connects) }
+    }
+
+    @Test fun goingHomeAndTappingConnectAlsoReachesTheNewLaptop() {
+        rule.onNodeWithText("Choose another laptop / pair a new one").performScrollTo().performClick()
+        rule.onNodeWithTag("laptopVisible").performScrollTo().performClick()
+        rule.runOnIdle { hid.emit(HidEvent.ConnectionChanged(laptopA, HidStateReducer.STATE_DISCONNECTED)) }
+        // paired on the laptop, but this phone gave the app no "paired" event; the person goes back and taps Connect
+        rule.runOnIdle { hid.connects.clear(); paired = listOf(laptopA, laptopB); vm.navigate(Screen.HOME); vm.onForeground() }
+        passTime(MainViewModel.CONNECT_TIMEOUT_MS + 1_000) // "Connecting…" runs out
+        rule.onNodeWithTag("homeAction").performClick()
+        passTime(MainViewModel.ATTEMPT_MS + 500)
+        rule.runOnIdle { assertEquals("old laptop first, then the new one", listOf("AA:AA", "BB:BB"), hid.connects) }
+        rule.runOnIdle { hid.emit(HidEvent.ConnectionChanged(laptopB, HidStateReducer.STATE_CONNECTED)) }
+        rule.onNodeWithText("Connected to NEW-LAPTOP ✓").assertIsDisplayed()
     }
 }

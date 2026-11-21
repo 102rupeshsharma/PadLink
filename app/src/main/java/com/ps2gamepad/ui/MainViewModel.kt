@@ -213,6 +213,9 @@ class MainViewModel(
         autoRegisterAttempts = 0
         _connectRequested.value = true
         _connectProblem.value = null
+        // Connect was tapped: no longer only waiting for a new laptop, so every paired laptop is tried
+        waitingForNewLaptop = false
+        newLaptopJob?.cancel()
         connectTimeoutJob?.cancel()
         val waitMs = maxOf(CONNECT_TIMEOUT_MS, ATTEMPT_MS * connectCandidates().size + 4_000)
         connectTimeoutJob = viewModelScope.launch {
@@ -434,8 +437,34 @@ class MainViewModel(
         waitingForNewLaptop = true
         autoConnectJob?.cancel()
         reconnectJob?.cancel()
+        laptopScanner?.onPaired(::onLaptopPaired)
         startGamepadForChoice()
         if (hidState.value.isConnected) { log.add("Disconnecting so a new laptop can connect"); hid.disconnect() }
+    }
+
+    private var newLaptopJob: Job? = null
+
+    /**
+     * A laptop was paired from its own Bluetooth settings while the phone was visible. Windows then shows
+     * "Connected"/"Paired", but often never opens the gamepad connection by itself, so the app stayed on
+     * "Not connected". Give the laptop a moment, then connect to it from the phone.
+     */
+    private fun onLaptopPaired(address: String) {
+        if (!waitingForNewLaptop) return
+        newLaptopJob?.cancel()
+        newLaptopJob = viewModelScope.launch {
+            // the pairing dialog may cover the app: Android only lets a visible app run the gamepad, so wait for it
+            var waited = 0L
+            while (!inForeground && waited < FOREGROUND_WAIT_MS) { delay(500); waited += 500 }
+            if (!inForeground) return@launch
+            delay(NEW_LAPTOP_WAIT_MS)
+            if (hidState.value.connection is ConnectionState.Connecting) delay(ATTEMPT_MS) // the laptop is connecting by itself
+            if (!waitingForNewLaptop || userDisconnected || hidState.value.isConnected) return@launch
+            refreshBondedHosts()
+            val host = _bondedHosts.value.firstOrNull { it.address == address && it.isComputer } ?: return@launch
+            log.add("${host.displayName} was paired but did not connect by itself: connecting from the phone")
+            chooseLaptop(host)
+        }
     }
 
     fun applyPhoneName() {
@@ -946,6 +975,10 @@ class MainViewModel(
         const val ATTEMPT_MS = 8_000L
         /** Pair & connect waits this long for the gamepad to start before pairing. */
         const val REGISTER_WAIT_MS = 10_000L
+        /** After a laptop paired from its side: wait this long for it to connect by itself, then connect from the phone. */
+        const val NEW_LAPTOP_WAIT_MS = 3_000L
+        /** ...and at most this long for the app to be visible again after the pairing dialog. */
+        const val FOREGROUND_WAIT_MS = 120_000L
     }
 
     override fun onCleared() {
